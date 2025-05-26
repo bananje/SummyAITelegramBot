@@ -29,9 +29,10 @@ public class TelegramWebHookController(ICommandFactory commandFactory, ITelegram
     [HttpPost("set-webhook")]
     public async Task<IActionResult> SetWebhook()
     {
+        var host = $"{Request.Scheme}://{Request.Host}";
+
         try
         {
-            var host = $"{Request.Scheme}://{Request.Host}";
             var webhookUrl = $"{host}/api/webhook";
 
             await botClient.SetWebhook(webhookUrl);
@@ -40,7 +41,7 @@ public class TelegramWebHookController(ICommandFactory commandFactory, ITelegram
         }
         catch (Exception EX)
         {
-            return BadRequest(EX.Message);
+            return BadRequest(EX.Message + host);
         }
     }
 }
