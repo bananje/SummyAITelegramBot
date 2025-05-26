@@ -9,6 +9,13 @@ namespace SummyAITelegramBot.API.Controllers;
 [ApiController]
 public class TelegramWebHookController(ICommandFactory commandFactory, ITelegramBotClient botClient) : ControllerBase
 {
+    [HttpGet]
+    public IActionResult Get()
+    {
+        
+        return Ok(DateTime.UtcNow);
+    }
+
     [HttpPost]
     public async Task<IActionResult> HandleUpdate([FromBody] Update update)
     {
@@ -22,11 +29,18 @@ public class TelegramWebHookController(ICommandFactory commandFactory, ITelegram
     [HttpPost("set-webhook")]
     public async Task<IActionResult> SetWebhook()
     {
-        var host = $"{Request.Scheme}://{Request.Host}";
-        var webhookUrl = $"{host}/api/webhook";
+        try
+        {
+            var host = $"{Request.Scheme}://{Request.Host}";
+            var webhookUrl = $"{host}/api/webhook";
 
-        await botClient.SetWebhook(webhookUrl);
+            await botClient.SetWebhook(webhookUrl);
 
-        return Ok(new { webhook = webhookUrl });
+            return Ok(new { webhook = webhookUrl });
+        }
+        catch (Exception EX)
+        {
+            return BadRequest(EX.Message);
+        }
     }
 }
