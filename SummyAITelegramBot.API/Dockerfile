@@ -7,14 +7,24 @@ WORKDIR /app
 EXPOSE 8080
 EXPOSE 8081
 
-
 # Этот этап используется для сборки проекта службы
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
+
+# Копируем и восстанавливаем библиотеки
+COPY ["SummyAITelegramBot.Core/SummyAITelegramBot.Core.csproj", "SummyAITelegramBot.Core/"]
+COPY ["SummyAITelegramBot.Infrastructure/SummyAITelegramBot.Infrastructure.csproj", "SummyAITelegramBot.Infrastructure/"]
 COPY ["SummyAITelegramBot.API/SummyAITelegramBot.API.csproj", "SummyAITelegramBot.API/"]
+
+# Восстанавливаем зависимости для всех проектов
 RUN dotnet restore "./SummyAITelegramBot.API/SummyAITelegramBot.API.csproj"
+RUN dotnet restore "./SummyAITelegramBot.Core/SummyAITelegramBot.Core.csproj"
+RUN dotnet restore "./SummyAITelegramBot.Infrastructure/SummyAITelegramBot.Infrastructure.csproj"
+
+# Копируем весь исходный код
 COPY . .
+
 WORKDIR "/src/SummyAITelegramBot.API"
 RUN dotnet build "./SummyAITelegramBot.API.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
