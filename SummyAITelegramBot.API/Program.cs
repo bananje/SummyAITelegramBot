@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.HttpOverrides;
 using SummyAITelegramBot.Core.Abstractions;
 using SummyAITelegramBot.Core.Common;
 using Telegram.Bot;
@@ -26,6 +27,13 @@ var app = builder.Build();
         app.UseSwagger();
         app.UseSwaggerUI();
     }
+
+    app.UseForwardedHeaders(new ForwardedHeadersOptions
+    {
+        ForwardedHeaders = ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedFor,
+        KnownNetworks = { }, // разрешить все сети
+        KnownProxies = { }   // разрешить всех прокси
+    });
 
     app.UseHttpsRedirection();
 
