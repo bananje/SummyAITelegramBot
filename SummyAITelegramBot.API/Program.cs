@@ -1,10 +1,20 @@
 using Microsoft.AspNetCore.HttpOverrides;
+using Serilog;
 using SummyAITelegramBot.Core.Abstractions;
 using SummyAITelegramBot.Core.Common;
 using Telegram.Bot;
 
 var builder = WebApplication.CreateBuilder(args);
-{ 
+{
+    Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Debug()
+    .Enrich.FromLogContext()
+    .WriteTo.Console()
+    .WriteTo.File(
+        path: "logs/log-.txt",
+        rollingInterval: RollingInterval.Day,
+        retainedFileCountLimit: 7)
+    .CreateLogger();
     builder.Services.AddControllers();
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen();
@@ -18,6 +28,8 @@ var builder = WebApplication.CreateBuilder(args);
         .WithTransientLifetime());
 
     builder.Services.AddSingleton<ICommandFactory, CommandFactory>();
+
+    builder.Host.UseSerilog();
 }
 
 var app = builder.Build();
@@ -38,6 +50,7 @@ var app = builder.Build();
     app.UseHttpsRedirection();
 
     app.UseAuthorization();
+    app.UseSerilogRequestLogging();
 
     app.MapControllers();
 

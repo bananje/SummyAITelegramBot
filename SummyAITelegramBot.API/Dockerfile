@@ -4,6 +4,10 @@
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
 USER $APP_UID
 WORKDIR /app
+
+RUN mkdir -p /app/logs
+VOLUME /app/logs
+
 EXPOSE 8080
 EXPOSE 8081
 
@@ -37,4 +41,6 @@ RUN dotnet publish "./SummyAITelegramBot.API.csproj" -c $BUILD_CONFIGURATION -o 
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
+
+RUN mkdir -p /app/logs
 ENTRYPOINT ["dotnet", "SummyAITelegramBot.API.dll"]

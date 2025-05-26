@@ -1,4 +1,5 @@
-﻿using SummyAITelegramBot.Core.Abstractions;
+﻿using Serilog;
+using SummyAITelegramBot.Core.Abstractions;
 using SummyAITelegramBot.Core.Utils;
 using Telegram.Bot;
 using Telegram.Bot.Types;
@@ -10,14 +11,19 @@ namespace SummyAITelegramBot.Core.Handlers;
 public class StartMessageHandler : IMessageHandler
 {
     private readonly ITelegramBotClient _botClient;
+    private readonly ILogger _logger;
 
-    public StartMessageHandler(ITelegramBotClient botClient)
+    public StartMessageHandler(ITelegramBotClient botClient, ILogger logger)
     {
         _botClient = botClient;
+        _logger = logger;
     }
 
     public async Task HandleAsync(Message message)
     {
+        _logger.Information("Выполенение start");
+
+
         var keyboard = new ReplyKeyboardMarkup(new[]
         {
             new[] { new KeyboardButton("Настройки"), new KeyboardButton("Мои каналы") },

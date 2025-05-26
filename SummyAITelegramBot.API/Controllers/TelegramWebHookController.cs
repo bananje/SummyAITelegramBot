@@ -16,7 +16,7 @@ public class TelegramWebHookController(ICommandFactory commandFactory, ITelegram
         return Ok(DateTime.UtcNow);
     }
 
-    [HttpPost]
+    [HttpPost("webhook")]
     public async Task<IActionResult> HandleUpdate([FromBody] Update update)
     {
         if (update.Message?.Text is { } messageText)
@@ -33,7 +33,7 @@ public class TelegramWebHookController(ICommandFactory commandFactory, ITelegram
 
         try
         {
-            var webhookUrl = $"{host}/api/webhook";
+            var webhookUrl = $"{host}/api/telegramwebhook/webhook";
 
             await botClient.SetWebhook(webhookUrl);
 
