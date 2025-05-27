@@ -7,6 +7,9 @@ using Telegram.Bot.Types.ReplyMarkups;
 
 namespace SummyAITelegramBot.Core.Handlers;
 
+/// <summary>
+/// Обработчик команды /start
+/// </summary>
 [CommandHandler("start")]
 public class StartMessageHandler : IMessageHandler
 {

@@ -8,12 +8,12 @@ namespace SummyAITelegramBot.Core.Common;
 
 public class CommandFactory : ICommandFactory
 {
-    private readonly IServiceProvider _serviceProvider;
+    private readonly IServiceScopeFactory _scopeFactory;
     private static readonly Dictionary<string, Type> _handlers = new();
 
-    public CommandFactory(IServiceProvider serviceProvider)
+    public CommandFactory(IServiceScopeFactory scopeFactory)
     {
-        _serviceProvider = serviceProvider;
+        _scopeFactory = scopeFactory;
         LoadHandlers();
     }
 
@@ -36,7 +36,9 @@ public class CommandFactory : ICommandFactory
 
         if (_handlers.TryGetValue(normalizedCommand, out var handlerType))
         {
-            var handler = _serviceProvider.GetRequiredService(handlerType) as IMessageHandler;
+            using var scope = _scopeFactory.CreateScope();
+            var handler = scope.ServiceProvider.GetRequiredService<IMessageHandler>();
+
             await handler!.HandleAsync(message);
         }
     }

@@ -15,6 +15,10 @@ var builder = WebApplication.CreateBuilder(args);
         rollingInterval: RollingInterval.Day,
         retainedFileCountLimit: 7)
     .CreateLogger();
+
+    builder.Host.UseSerilog();
+
+    builder.Services.AddSingleton(_ => Log.Logger);
     builder.Services.AddControllers();
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen();
@@ -24,12 +28,10 @@ var builder = WebApplication.CreateBuilder(args);
     builder.Services.Scan(scan => scan
         .FromAssemblyOf<IMessageHandler>()
         .AddClasses(classes => classes.AssignableTo<IMessageHandler>())
-        .AsImplementedInterfaces()
-        .WithTransientLifetime());
+        .AsSelfWithInterfaces()
+        .WithScopedLifetime());
 
     builder.Services.AddSingleton<ICommandFactory, CommandFactory>();
-
-    builder.Host.UseSerilog();
 }
 
 var app = builder.Build();
