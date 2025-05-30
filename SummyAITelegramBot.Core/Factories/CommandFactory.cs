@@ -1,10 +1,10 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-using SummyAITelegramBot.Core.Abstractions;
-using SummyAITelegramBot.Core.Utils;
+using SummyAITelegramBot.Core.Bot.Abstractions;
+using SummyAITelegramBot.Core.Bot.Attributes;
 using System.Reflection;
 using Telegram.Bot.Types;
 
-namespace SummyAITelegramBot.Core.Common;
+namespace SummyAITelegramBot.Core.Factories;
 
 public class CommandFactory : ICommandFactory
 {
@@ -37,9 +37,11 @@ public class CommandFactory : ICommandFactory
         if (_handlers.TryGetValue(normalizedCommand, out var handlerType))
         {
             using var scope = _scopeFactory.CreateScope();
-            var handler = scope.ServiceProvider.GetRequiredService<IMessageHandler>();
 
-            await handler!.HandleAsync(message);
+            // Получаем конкретный тип обработчика
+            var handler = (ICommandHandler)scope.ServiceProvider.GetRequiredService(handlerType);
+
+            await handler.HandleAsync(message);
         }
     }
 

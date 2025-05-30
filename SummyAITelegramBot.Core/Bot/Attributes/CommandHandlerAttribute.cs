@@ -1,4 +1,4 @@
-﻿namespace SummyAITelegramBot.Core.Utils;
+﻿namespace SummyAITelegramBot.Core.Bot.Attributes;
 
 public class CommandHandlerAttribute : Attribute
 {

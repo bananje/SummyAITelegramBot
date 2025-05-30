@@ -1,9 +1,9 @@
 ﻿using Telegram.Bot.Types;
 
-namespace SummyAITelegramBot.Core.Abstractions;
+namespace SummyAITelegramBot.Core.Bot.Abstractions;
 
 /// <summary>
-/// Фабрика создания ТГ команд
+/// Фабрика создания обработчиков ТГ команд
 /// </summary>
 public interface ICommandFactory
 {

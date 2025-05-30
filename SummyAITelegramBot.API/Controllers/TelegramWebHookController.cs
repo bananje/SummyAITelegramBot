@@ -1,28 +1,36 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using SummyAITelegramBot.Core.Abstractions;
+using SummyAITelegramBot.Core.Bot.Abstractions;
 using Telegram.Bot;
 using Telegram.Bot.Types;
+using Telegram.Bot.Types.Enums;
 
 namespace SummyAITelegramBot.API.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-public class TelegramWebHookController(ICommandFactory commandFactory, ITelegramBotClient botClient) : ControllerBase
+public class TelegramWebHookController(
+    ICommandFactory commandFactory, 
+    ITelegramBotClient botClient,
+    ICallbackFactory callbackFactory) : ControllerBase
 {
     [HttpGet]
     public IActionResult Get()
-    {
-        
+    {       
         return Ok(DateTime.UtcNow);
     }
 
     [HttpPost("webhook")]
     public async Task<IActionResult> HandleUpdate([FromBody] Update update)
     {
-        if (update.Message?.Text is { } messageText)
+        if (update.Type == UpdateType.Message && update.Message?.Text is { } messageText)
         {
             await commandFactory.ProcessCommandAsync(messageText, update.Message);
         }
+        else if (update.Type == UpdateType.CallbackQuery)
+        {
+            await callbackFactory.DispatchAsync(update.CallbackQuery!);
+        }
+
         return Ok();
     }
 

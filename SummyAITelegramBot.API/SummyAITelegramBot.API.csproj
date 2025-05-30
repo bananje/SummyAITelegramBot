@@ -19,6 +19,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\SummyAITelegramBot.Core\SummyAITelegramBot.Core.csproj" />
+    <ProjectReference Include="..\SummyAITelegramBot.Infrastructure\SummyAITelegramBot.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
