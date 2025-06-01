@@ -5,5 +5,7 @@ namespace SummyAITelegramBot.Infrastructure.Context;
 
 public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
 {
-    public DbSet<UserSettings> Categories => Set<UserSettings>();
+    public DbSet<UserSettings> UserSettings => Set<UserSettings>();
+
+    public DbSet<User> Users => Set<User>();
 }

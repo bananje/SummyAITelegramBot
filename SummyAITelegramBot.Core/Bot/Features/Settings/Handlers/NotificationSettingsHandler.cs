@@ -3,6 +3,7 @@ using Telegram.Bot.Types;
 using Telegram.Bot;
 using SummyAITelegramBot.Core.Bot.Abstractions;
 using SummyAITelegramBot.Core.Domain.Models;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace SummyAITelegramBot.Core.Bot.Features.Settings.Handlers;
 
@@ -10,25 +11,56 @@ public class NotificationsSettingsHandler : IChainOfStepsHandler<UserSettings>
 {
     public IChainOfStepsHandler<UserSettings>? Next { get; set; }
 
+    private static readonly string CallbackPrefix = "settings:notify:time:";
+
     public async Task ShowStepAsync(ITelegramBotClient bot, long chatId)
     {
-        var keyboard = new InlineKeyboardMarkup(new[]
-        {
-            InlineKeyboardButton.WithCallbackData("Вкл.", "settings:notify:on"),
-            InlineKeyboardButton.WithCallbackData("Выкл.", "settings:notify:off")
-        });
+        var text = $"""
+            <b>1️⃣ Начнём с первой настройки. В какое время ты хочешь получать сводки?</b>
+            """;
 
-        await bot.SendMessage(chatId, "Получать уведомления?", replyMarkup: keyboard);
+        var times = new[]
+        {
+            "1:00", "2:00", "6:00",
+            "7:00", "8:00", "9:00",
+            "10:00", "11:00", "12:00",
+            "13:00", "14:00", "15:00",
+            "16:00", "17:00", "18:00",
+            "19:00", "20:00", "21:00",
+            "22:00", "23:00", "0:00"
+        };
+
+        var keyboard = new List<List<InlineKeyboardButton>>();
+        for (int i = 0; i < times.Length; i += 3)
+        {
+            keyboard.Add(times
+                .Skip(i).Take(3)
+                .Select(t => InlineKeyboardButton.WithCallbackData(t, $"{CallbackPrefix}{t}"))
+                .ToList());
+        }
+
+        await bot.SendMessage(chatId, text,
+            replyMarkup: new InlineKeyboardMarkup(keyboard));
     }
 
     public async Task HandleAsync(ITelegramBotClient bot, CallbackQuery query, UserSettings settings)
     {
-        if (query.Data == "settings:notify:on")
-            settings.NotificationsEnabled = true;
-        else if (query.Data == "settings:notify:off")
-            settings.NotificationsEnabled = false;
+        if (query.Data != null && query.Data.StartsWith(CallbackPrefix))
+        {
+            var timeStr = query.Data.Substring(CallbackPrefix.Length);
 
-        if (Next != null)
-            await Next.ShowStepAsync(bot, query.Message.Chat.Id);
+            if (TimeOnly.TryParse(timeStr, out var time))
+            {
+                settings.NotificationTime = time;
+            }
+            else
+            {
+                await bot.SendMessage(query.Message.Chat.Id, "❌ Ошибка: неверное время.");
+                return;
+            }
+
+            if (Next != null)
+                await Next.ShowStepAsync(bot, query.Message.Chat.Id);
+        }
     }
 }

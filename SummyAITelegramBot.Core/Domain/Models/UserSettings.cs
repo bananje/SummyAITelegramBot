@@ -10,12 +10,30 @@ public class UserSettings : Entity<long>
     /// </summary>
     public bool IsGlobal { get; set; }
 
+    /// <summary>
+    /// Использовать ли медиа в сводке
+    /// </summary>
+    public bool MediaEnabled { get; set; }
 
+    /// <summary>
+    /// Кому настройка принадлежит
+    /// </summary>
     public long UserId { get; set; }
 
+    public User User { get; set; }
+
+    /// <summary>
+    /// Язык интерфейса
+    /// </summary>
     public Lanquage Language { get; set; } = Lanquage.RU;
 
-    public bool? NotificationsEnabled { get; set; }
+    /// <summary>
+    /// Блокировать похожие посты в рамках каналов
+    /// </summary>
+    public bool IsBlockingSimilarPostsInChannels { get; set; }
 
-    public string? TimeZone { get; set; }
+    /// <summary>
+    /// Время отправки сводок
+    /// </summary>
+    public TimeOnly NotificationTime { get; set; }
 }

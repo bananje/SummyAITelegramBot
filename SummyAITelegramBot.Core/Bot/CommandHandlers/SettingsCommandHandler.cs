@@ -17,6 +17,6 @@ public class SettingsCommandHandler(
 {
     public async Task HandleAsync(Message message)
     {
-        await handler.StartChainAsync(message.Chat.Id);
+        await handler.StartChainAsync(message.Chat.Id, message.From.Id);
     }
 }

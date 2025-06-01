@@ -9,6 +9,9 @@ using SummyAITelegramBot.Infrastructure.Repository;
 using Telegram.Bot;
 using Microsoft.EntityFrameworkCore;
 using SummyAITelegramBot.Infrastructure.Context;
+using SummyAITelegramBot.Core.Utils;
+using SummyAITelegramBot.Core.Bot.Features.User.Abstractions;
+using SummyAITelegramBot.Core.Bot.Features.User.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 {
@@ -28,6 +31,7 @@ var builder = WebApplication.CreateBuilder(args);
     builder.Services.AddControllers();
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen();
+    builder.Services.AddMemoryCache();
 
     builder.Services.AddSingleton<ITelegramBotClient>(new TelegramBotClient(builder.Configuration["Token"]));
 
@@ -38,16 +42,20 @@ var builder = WebApplication.CreateBuilder(args);
         .WithScopedLifetime());
 
     builder.Services.Scan(scan => scan
-        .FromAssemblyOf<ICallbackHandler>()
-        .AddClasses(c => c.AssignableTo<ICallbackHandler>())
-        .AsImplementedInterfaces()
-        .WithScopedLifetime());
+       .FromAssemblyOf<ICallbackHandler>()
+       .AddClasses(classes => classes
+           .AssignableTo<ICallbackHandler>()
+           .Where(t => !t.IsAbstract)) // Исключаем абстрактные классы
+       .AsSelfWithInterfaces() // Регистрируем как себя и свои интерфейсы
+       .WithScopedLifetime());
+
 
     builder.Services.AddSingleton<ICommandFactory, CommandFactory>();
     builder.Services.AddSingleton<ICallbackFactory, CallbackFactory>();
+    builder.Services.AddSingleton<IStaticImageService, StaticImageService>();
 
-    builder.Services.AddSingleton<SettingsChainOfStepsHandler>();
-
+    builder.Services.AddScoped<IUserService, UserService>();
+    builder.Services.AddScoped<SettingsChainOfStepsHandler>();
     builder.Services.AddScoped(typeof(IRepository<,>), typeof(GenericRepository<,>));
     builder.Services.AddDbContext<AppDbContext>(options =>
         options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));

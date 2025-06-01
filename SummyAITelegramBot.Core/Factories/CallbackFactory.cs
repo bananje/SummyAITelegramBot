@@ -3,6 +3,7 @@ using SummyAITelegramBot.Core.Bot.Abstractions;
 using SummyAITelegramBot.Core.Bot.Attributes;
 using System.Reflection;
 using Telegram.Bot.Types;
+using static System.Formats.Asn1.AsnWriter;
 
 namespace SummyAITelegramBot.Core.Factories;
 
@@ -10,7 +11,7 @@ public class CallbackFactory : ICallbackFactory
 {
     private readonly Dictionary<string, ICallbackHandler> _handlersByPrefix;
 
-    public CallbackFactory(IServiceProvider serviceProvider)
+    public CallbackFactory(IServiceScopeFactory scopeFactory)
     {
         _handlersByPrefix = new();
 
@@ -24,12 +25,13 @@ public class CallbackFactory : ICallbackFactory
             var attr = type.GetCustomAttribute<CallbackHandlerAttribute>();
             if (attr != null)
             {
-
-                var handler = (ICallbackHandler)serviceProvider.GetRequiredService(type);
+                var scope = scopeFactory.CreateScope();
+                var handler = (ICallbackHandler)scope.ServiceProvider.GetRequiredService(type);
                 _handlersByPrefix[attr.Prefix] = handler;
             }
         }
     }
+
 
     public async Task DispatchAsync(CallbackQuery query)
     {

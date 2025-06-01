@@ -28,6 +28,13 @@ public class TelegramWebHookController(
         }
         else if (update.Type == UpdateType.CallbackQuery)
         {
+            if (update.CallbackQuery!.Data!.StartsWith("/"))
+            {
+                var callBack = update.CallbackQuery!;
+
+                await commandFactory.ProcessCommandAsync(callBack.Data, callBack.Message);
+            }
+
             await callbackFactory.DispatchAsync(update.CallbackQuery!);
         }
 

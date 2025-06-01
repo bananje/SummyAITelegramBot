@@ -1,6 +1,8 @@
-﻿namespace SummyAITelegramBot.Core.Domain.Models;
+﻿using SummyAITelegramBot.Core.Abstractions;
 
-public class User
+namespace SummyAITelegramBot.Core.Domain.Models;
+
+public class User : Entity<long>
 {
     // Основные данные пользователя Telegram
     public long TelegramId { get; set; }                    // Telegram User ID
@@ -18,7 +20,7 @@ public class User
     public float? Longitude { get; set; }                   // Долгота
 
     // Дата последнего взаимодействия
-    public DateTime LastInteractionAt { get; set; }         // Когда последний раз обращался к боту
+    public DateTime? LastInteractionAt { get; set; }         // Когда последний раз обращался к боту
 
     // Дополнительно (если нужно вести аналитику)
     public bool IsBot { get; set; }                         // Является ли пользователь ботом (редко используется)

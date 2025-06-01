@@ -1,6 +1,6 @@
 ﻿namespace SummyAITelegramBot.Core.Abstractions;
 
-public interface IRepository<TId, TEntity> where TEntity : class
+public interface IRepository<TId, TEntity>
 {
     /// <summary>
     /// Получить сущность по ID
@@ -17,4 +17,12 @@ public interface IRepository<TId, TEntity> where TEntity : class
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     Task<TEntity> UpdateAsync(TEntity entity, CancellationToken cancellationToken = default);
+
+    Task<TEntity> CreateOrUpdateAsync(TId id, TEntity entity, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Для нетиповых запросов
+    /// </summary>
+    /// <returns></returns>
+    IQueryable<TEntity> GetIQueryable();
 }
