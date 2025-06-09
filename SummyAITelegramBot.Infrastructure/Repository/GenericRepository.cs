@@ -50,4 +50,11 @@ public class GenericRepository<TId, TEntity> : IRepository<TId, TEntity> where T
         await _context.SaveChangesAsync(cancellationToken);
         return entity;
     }
+
+    public async Task<TEntity> AddAsync(TEntity entity, CancellationToken cancellationToken = default)
+    {
+        var entry = await _context.AddAsync(entity);
+        await _context.SaveChangesAsync(cancellationToken);
+        return entry.Entity;
+    }
 }

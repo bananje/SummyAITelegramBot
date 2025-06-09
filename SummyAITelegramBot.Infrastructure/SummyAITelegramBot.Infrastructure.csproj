@@ -24,10 +24,15 @@
     <PackageReference Include="Serilog.Formatting.Compact" Version="3.0.0" />
     <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
     <PackageReference Include="Telegram.Bot" Version="22.5.1" />
+    <PackageReference Include="WTelegramClient" Version="4.3.5" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\SummyAITelegramBot.Core\SummyAITelegramBot.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Migrations\" />
   </ItemGroup>
 
 </Project>

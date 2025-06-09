@@ -4,6 +4,10 @@ namespace SummyAITelegramBot.Core.Domain.Models;
 
 public class User : Entity<long>
 {
+    public ICollection<UserSettings> UserSettings { get; set; } = []; // Настройки пользователя
+
+    public ICollection<Channel> Channels { get; set; } = []; // Каналы, в которых состоит пользователь
+
     // Основные данные пользователя Telegram
     public long TelegramId { get; set; }                    // Telegram User ID
     public string? FirstName { get; set; }                  // Имя
@@ -28,4 +32,5 @@ public class User : Entity<long>
 
     // Можно добавить флаг для логики
     public bool IsFullyRegistered => !string.IsNullOrEmpty(PhoneNumber); // Пример логики регистрации
+
 }

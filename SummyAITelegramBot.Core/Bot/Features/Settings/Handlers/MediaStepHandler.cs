@@ -26,7 +26,8 @@ public class MediaStepHandler(IStaticImageService imageService) : IChainOfStepsH
     public async Task ShowStepAsync(ITelegramBotClient bot, long chatId)
     {
         var caption =
-            "<b>Пример сводки с медиа</b>\n\n" +
+            "<b>2️⃣ Теперь настроим отображение картинок.</b>\n\n" +
+            "<b>Вот так выглядит сводка с медиа</b>\n\n" +
             "⚡️Футбольный клуб «Краснодар» впервые стал Чемпионом России по футболу.\n\n" +
             " Матч проходил в стадионе парка 'Краснодар'\n\n" +
             "<a href='https://example.com'>Ссылка</a>";

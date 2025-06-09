@@ -18,6 +18,12 @@ public interface IRepository<TId, TEntity>
     /// <returns></returns>
     Task<TEntity> UpdateAsync(TEntity entity, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Создать сущность
+    /// </summary>
+    /// <returns></returns>
+    Task<TEntity> AddAsync(TEntity entity, CancellationToken cancellationToken = default);
+
     Task<TEntity> CreateOrUpdateAsync(TId id, TEntity entity, CancellationToken cancellationToken = default);
 
     /// <summary>

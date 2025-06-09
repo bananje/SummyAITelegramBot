@@ -24,10 +24,12 @@ public class TelegramWebHookController(
     {
         if (update.Type == UpdateType.Message && update.Message?.Text is { } messageText)
         {
+            HttpContext.Items["chatId"] = update.Message.Chat.Id;
             await commandFactory.ProcessCommandAsync(messageText, update.Message);
         }
         else if (update.Type == UpdateType.CallbackQuery)
         {
+            HttpContext.Items["chatId"] = update.CallbackQuery.Message.Chat.Id;
             if (update.CallbackQuery!.Data!.StartsWith("/"))
             {
                 var callBack = update.CallbackQuery!;

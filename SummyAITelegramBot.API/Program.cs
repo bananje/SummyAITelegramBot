@@ -12,6 +12,13 @@ using SummyAITelegramBot.Infrastructure.Context;
 using SummyAITelegramBot.Core.Utils;
 using SummyAITelegramBot.Core.Bot.Features.User.Abstractions;
 using SummyAITelegramBot.Core.Bot.Features.User.Services;
+using SummyAITelegramBot.API.ExceptionHandlers;
+using SummyAITelegramBot.Core.AI.AiStrategies;
+using SummyAITelegramBot.Core.AI.Factories;
+using SummyAITelegramBot.Core.AI.Abstractions;
+using SummyAITelegramBot.Core.Bot.Features.Channel.Abstractions;
+using SummyAITelegramBot.Core.Bot.Features.Channel.Services;
+using System.Net.Http.Headers;
 
 var builder = WebApplication.CreateBuilder(args);
 {
@@ -32,6 +39,9 @@ var builder = WebApplication.CreateBuilder(args);
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen();
     builder.Services.AddMemoryCache();
+    builder.Services.AddProblemDetails();
+    builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+    builder.Services.AddHttpContextAccessor();
 
     builder.Services.AddSingleton<ITelegramBotClient>(new TelegramBotClient(builder.Configuration["Token"]));
 
@@ -45,25 +55,63 @@ var builder = WebApplication.CreateBuilder(args);
        .FromAssemblyOf<ICallbackHandler>()
        .AddClasses(classes => classes
            .AssignableTo<ICallbackHandler>()
-           .Where(t => !t.IsAbstract)) // Исключаем абстрактные классы
-       .AsSelfWithInterfaces() // Регистрируем как себя и свои интерфейсы
+           .Where(t => !t.IsAbstract)) 
+       .AsSelfWithInterfaces()
        .WithScopedLifetime());
 
 
-    builder.Services.AddSingleton<ICommandFactory, CommandFactory>();
-    builder.Services.AddSingleton<ICallbackFactory, CallbackFactory>();
-    builder.Services.AddSingleton<IStaticImageService, StaticImageService>();
+    builder.Services.AddScoped<ICommandFactory, CommandFactory>();
+    builder.Services.AddScoped<ICallbackFactory, CallbackFactory>();
+    builder.Services.AddScoped<IStaticImageService, StaticImageService>();
 
     builder.Services.AddScoped<IUserService, UserService>();
     builder.Services.AddScoped<SettingsChainOfStepsHandler>();
     builder.Services.AddScoped(typeof(IRepository<,>), typeof(GenericRepository<,>));
     builder.Services.AddDbContext<AppDbContext>(options =>
-        options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+    builder.Services.AddScoped<ISummarizationStrategyFactory, SummarizationStrategyFactory>();
+    builder.Services.AddScoped<OpenAISummarizationStrategy>();
+    builder.Services.AddScoped<DeepSeekSummarizationStrategy>();
+    builder.Services.Scan(scan => scan
+       .FromAssemblyOf<ISummarizationStrategy>()
+       .AddClasses(classes => classes
+           .AssignableTo<ISummarizationStrategy>()
+           .Where(t => !t.IsAbstract))
+       .AsSelfWithInterfaces()
+       .WithScopedLifetime());
+
+    builder.Services.AddHttpClient();
+
+    builder.Services.AddScoped<IChannelService, ChannelService>();
+
+    builder.Services.AddHttpClient("DeepSeek", client =>
+    {
+        client.BaseAddress = new Uri("https://openrouter.ai/api/v1/");
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "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");
+
+        client.DefaultRequestHeaders.Add("X-Title", "SummyAI");
+    });
     builder.Services.AddScoped<ICommandHandler, SettingsCommandHandler>();
+
+
 }
 var app = builder.Build();
 {
+    using (var scope = app.Services.CreateScope())
+    {
+        try
+        {
+            var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            dbContext.Database.Migrate();
+        }
+        catch (Exception ex)
+        {
+            Log.Error($"Ошибка при применении миграций: {ex.Message}");
+            throw;
+        }
+    }
+
     if (app.Environment.IsDevelopment())
     {
         app.UseSwagger();
@@ -83,6 +131,6 @@ var app = builder.Build();
     app.UseSerilogRequestLogging();
 
     app.MapControllers();
-
+    app.UseExceptionHandler();
     app.Run();
 }

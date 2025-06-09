@@ -22,6 +22,39 @@ namespace SummyAITelegramBot.Infrastructure.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("ChannelUser", b =>
+                {
+                    b.Property<Guid>("ChannelsId")
+                        .HasColumnType("uuid");
+
+                    b.Property<long>("UsersId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("ChannelsId", "UsersId");
+
+                    b.HasIndex("UsersId");
+
+                    b.ToTable("ChannelUser");
+                });
+
+            modelBuilder.Entity("SummyAITelegramBot.Core.Domain.Models.Channel", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsPrivate")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Link")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Channel");
+                });
+
             modelBuilder.Entity("SummyAITelegramBot.Core.Domain.Models.User", b =>
                 {
                     b.Property<long>("Id")
@@ -45,7 +78,7 @@ namespace SummyAITelegramBot.Infrastructure.Migrations
                     b.Property<string>("LanguageCode")
                         .HasColumnType("text");
 
-                    b.Property<DateTime>("LastInteractionAt")
+                    b.Property<DateTime?>("LastInteractionAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("LastName")
@@ -73,11 +106,15 @@ namespace SummyAITelegramBot.Infrastructure.Migrations
 
             modelBuilder.Entity("SummyAITelegramBot.Core.Domain.Models.UserSettings", b =>
                 {
-                    b.Property<long>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
+                        .HasColumnType("uuid");
 
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+                    b.Property<int>("AiModel")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("InstantlyNotification")
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("IsBlockingSimilarPostsInChannels")
                         .HasColumnType("boolean");
@@ -91,7 +128,7 @@ namespace SummyAITelegramBot.Infrastructure.Migrations
                     b.Property<bool>("MediaEnabled")
                         .HasColumnType("boolean");
 
-                    b.Property<TimeOnly>("NotificationTime")
+                    b.Property<TimeOnly?>("NotificationTime")
                         .HasColumnType("time without time zone");
 
                     b.Property<long>("UserId")
@@ -104,15 +141,35 @@ namespace SummyAITelegramBot.Infrastructure.Migrations
                     b.ToTable("UserSettings");
                 });
 
+            modelBuilder.Entity("ChannelUser", b =>
+                {
+                    b.HasOne("SummyAITelegramBot.Core.Domain.Models.Channel", null)
+                        .WithMany()
+                        .HasForeignKey("ChannelsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SummyAITelegramBot.Core.Domain.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("UsersId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("SummyAITelegramBot.Core.Domain.Models.UserSettings", b =>
                 {
                     b.HasOne("SummyAITelegramBot.Core.Domain.Models.User", "User")
-                        .WithMany()
+                        .WithMany("UserSettings")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("SummyAITelegramBot.Core.Domain.Models.User", b =>
+                {
+                    b.Navigation("UserSettings");
                 });
 #pragma warning restore 612, 618
         }

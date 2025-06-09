@@ -3,8 +3,16 @@ using SummyAITelegramBot.Core.Domain.Enums;
 
 namespace SummyAITelegramBot.Core.Domain.Models;
 
-public class UserSettings : Entity<long>
+public class UserSettings : Entity<Guid>
 {
+    /// <summary>
+    /// Модель ИИ для генерации сводки
+    /// </summary>
+    public AiModel AiModel { get; set; } = AiModel.DeepSeek;
+
+    // TO:DO добавить рекламу
+    // TO:DO отключить дублирование
+
     /// <summary>
     /// Глобальная настройках для всех каналов
     /// </summary>
@@ -35,5 +43,10 @@ public class UserSettings : Entity<long>
     /// <summary>
     /// Время отправки сводок
     /// </summary>
-    public TimeOnly NotificationTime { get; set; }
+    public TimeOnly? NotificationTime { get; set; }
+
+    /// <summary>
+    /// Моментально отправлять сводку при выходе поста в канале
+    /// </summary>
+    public bool InstantlyNotification { get; set; }
 }

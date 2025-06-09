@@ -13,6 +13,19 @@ namespace SummyAITelegramBot.Infrastructure.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
+                name: "Channel",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    Link = table.Column<string>(type: "text", nullable: false),
+                    IsPrivate = table.Column<bool>(type: "boolean", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Channel", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Users",
                 columns: table => new
                 {
@@ -27,7 +40,7 @@ namespace SummyAITelegramBot.Infrastructure.Migrations
                     PhoneNumber = table.Column<string>(type: "text", nullable: true),
                     Latitude = table.Column<float>(type: "real", nullable: true),
                     Longitude = table.Column<float>(type: "real", nullable: true),
-                    LastInteractionAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    LastInteractionAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     IsBot = table.Column<bool>(type: "boolean", nullable: false),
                     AddedToAttachmentMenu = table.Column<bool>(type: "boolean", nullable: true)
                 },
@@ -37,17 +50,42 @@ namespace SummyAITelegramBot.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "ChannelUser",
+                columns: table => new
+                {
+                    ChannelsId = table.Column<Guid>(type: "uuid", nullable: false),
+                    UsersId = table.Column<long>(type: "bigint", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ChannelUser", x => new { x.ChannelsId, x.UsersId });
+                    table.ForeignKey(
+                        name: "FK_ChannelUser_Channel_ChannelsId",
+                        column: x => x.ChannelsId,
+                        principalTable: "Channel",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_ChannelUser_Users_UsersId",
+                        column: x => x.UsersId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "UserSettings",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    AiModel = table.Column<int>(type: "integer", nullable: false),
                     IsGlobal = table.Column<bool>(type: "boolean", nullable: false),
                     MediaEnabled = table.Column<bool>(type: "boolean", nullable: false),
                     UserId = table.Column<long>(type: "bigint", nullable: false),
                     Language = table.Column<int>(type: "integer", nullable: false),
                     IsBlockingSimilarPostsInChannels = table.Column<bool>(type: "boolean", nullable: false),
-                    NotificationTime = table.Column<TimeOnly>(type: "time without time zone", nullable: false)
+                    NotificationTime = table.Column<TimeOnly>(type: "time without time zone", nullable: true),
+                    InstantlyNotification = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -61,6 +99,11 @@ namespace SummyAITelegramBot.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateIndex(
+                name: "IX_ChannelUser_UsersId",
+                table: "ChannelUser",
+                column: "UsersId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_UserSettings_UserId",
                 table: "UserSettings",
                 column: "UserId");
@@ -70,7 +113,13 @@ namespace SummyAITelegramBot.Infrastructure.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
+                name: "ChannelUser");
+
+            migrationBuilder.DropTable(
                 name: "UserSettings");
+
+            migrationBuilder.DropTable(
+                name: "Channel");
 
             migrationBuilder.DropTable(
                 name: "Users");

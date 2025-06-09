@@ -8,6 +8,11 @@ using Telegram.Bot.Types.ReplyMarkups;
 
 namespace SummyAITelegramBot.Core.Bot.CallbackHandlers;
 
+/// <summary>
+/// Окно с обучением пользователя при старте бота
+/// </summary>
+/// <param name="bot"></param>
+/// <param name="imageService"></param>
 [CallbackHandler("start")]
 public class StartCallbackHandler(
     ITelegramBotClient bot,
@@ -30,7 +35,7 @@ public class StartCallbackHandler(
 
         var keyboard = new InlineKeyboardMarkup(new[]
         {
-             new[] { InlineKeyboardButton.WithCallbackData("🚀 Настройки", "/settings") },
+             new[] { InlineKeyboardButton.WithCallbackData("⚙️ Настройки", "/settings") },
              new[] { InlineKeyboardButton.WithCallbackData("➕ Добавить канал", "/add") },
 
         });

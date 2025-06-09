@@ -30,22 +30,17 @@ public class SettingsChainOfStepsHandler(
         var userId = query.From.Id;
         var chatId = query.Message.Chat.Id;
 
-        if (!await userRepository.GetIQueryable().AnyAsync(u => u.Id == userId))
-        {
-            var keyboard = new ReplyKeyboardMarkup(new[]
-            {
-                new KeyboardButton[] { "/start" },
-            });
-
-            logger.Error($"User with ID:{userId} not found!");
-            await bot.SendMessage(chatId, "Кажется я сломалась! Перезапусти меня через /start.", replyMarkup: keyboard);
-        }
+        var user = await userRepository.GetByIdAsync(userId)
+            ?? throw new Exception($"Ошибка при настройке пользователя {userId}.");
 
         var chainKey = $"{ChainCachePrefix}{chatId}";
         var userKey = $"{UserSettingsCachePrefix}{userId}";        
 
         if (!cache.TryGetValue<IChainOfStepsHandler<UserSettings>>(chainKey, out var handler))
+        {
+            await SendErrorSettingsMessage(chatId, userId);
             return;
+        }          
 
         cache.TryGetValue<UserSettings>(userKey, out var userSettings);
 
@@ -104,13 +99,29 @@ public class SettingsChainOfStepsHandler(
 
         var notification = new NotificationsSettingsHandler();
         var media = new MediaStepHandler(imageService);
-        var stop = new ChannelReductionStepHandler();
+        var reduction = new ChannelReductionStepHandler();
+        var globalSetting = new GlobalSettingsStepHadler();
+        var finish = new FinishSettingsStepHandler();
 
         notification.Next = media;
-        media.Next = stop;
-         
+        media.Next = reduction;
+        reduction.Next = globalSetting;
+        globalSetting.Next = finish;
+
         cache.Set(chainKey, notification, TimeSpan.FromMinutes(10));
 
         await notification.ShowStepAsync(bot, chatId);
+    }
+
+    private async Task SendErrorSettingsMessage(long chatId, long userId)
+    {
+        var keyboard = new InlineKeyboardMarkup(new[]
+            {
+                InlineKeyboardButton.WithCallbackData("⚙️Настройки", "/settings"),
+                InlineKeyboardButton.WithCallbackData("⚙️Стоп", "/settings"),
+            });
+
+        logger.Error($"User with ID:{userId} not found!");
+        await bot.SendMessage(chatId, "Кажется, сбились настройки😕. Давай попробуем ещё раз!", replyMarkup: keyboard);
     }
 }

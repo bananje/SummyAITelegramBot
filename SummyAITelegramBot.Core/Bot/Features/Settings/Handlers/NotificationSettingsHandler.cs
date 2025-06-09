@@ -3,7 +3,7 @@ using Telegram.Bot.Types;
 using Telegram.Bot;
 using SummyAITelegramBot.Core.Bot.Abstractions;
 using SummyAITelegramBot.Core.Domain.Models;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
+using Telegram.Bot.Types.Enums;
 
 namespace SummyAITelegramBot.Core.Bot.Features.Settings.Handlers;
 
@@ -15,9 +15,9 @@ public class NotificationsSettingsHandler : IChainOfStepsHandler<UserSettings>
 
     public async Task ShowStepAsync(ITelegramBotClient bot, long chatId)
     {
-        var text = $"""
-            <b>1️⃣ Начнём с первой настройки. В какое время ты хочешь получать сводки?</b>
-            """;
+        var text =
+            "<b>1️⃣ Начнём с первой настройки</b>\n\n" +
+            "⏱️ В какое время ты хочешь получать сводки?\n\n";
 
         var times = new[]
         {
@@ -31,6 +31,12 @@ public class NotificationsSettingsHandler : IChainOfStepsHandler<UserSettings>
         };
 
         var keyboard = new List<List<InlineKeyboardButton>>();
+
+        keyboard.Add(new List<InlineKeyboardButton>
+        {
+            InlineKeyboardButton.WithCallbackData("🕒 Во время выхода поста", $"{CallbackPrefix}realtime")
+        });
+
         for (int i = 0; i < times.Length; i += 3)
         {
             keyboard.Add(times
@@ -39,7 +45,7 @@ public class NotificationsSettingsHandler : IChainOfStepsHandler<UserSettings>
                 .ToList());
         }
 
-        await bot.SendMessage(chatId, text,
+        await bot.SendMessage(chatId, text: text, parseMode: ParseMode.Html,
             replyMarkup: new InlineKeyboardMarkup(keyboard));
     }
 
@@ -49,9 +55,14 @@ public class NotificationsSettingsHandler : IChainOfStepsHandler<UserSettings>
         {
             var timeStr = query.Data.Substring(CallbackPrefix.Length);
 
-            if (TimeOnly.TryParse(timeStr, out var time))
+            if (timeStr == "realtime")
+            {
+                settings.InstantlyNotification = true;
+            }
+            else if (TimeOnly.TryParse(timeStr, out var time))
             {
                 settings.NotificationTime = time;
+                settings.InstantlyNotification = false;
             }
             else
             {

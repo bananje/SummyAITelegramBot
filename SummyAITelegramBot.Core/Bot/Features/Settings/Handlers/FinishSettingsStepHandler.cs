@@ -3,7 +3,6 @@ using Telegram.Bot.Types.ReplyMarkups;
 using Telegram.Bot.Types;
 using Telegram.Bot;
 using SummyAITelegramBot.Core.Domain.Models;
-using SummyAITelegramBot.Core.Domain.Enums;
 
 namespace SummyAITelegramBot.Core.Bot.Features.Settings.Handlers;
 
