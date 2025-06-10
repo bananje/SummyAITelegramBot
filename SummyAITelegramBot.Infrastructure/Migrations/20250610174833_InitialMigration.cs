@@ -16,9 +16,11 @@ namespace SummyAITelegramBot.Infrastructure.Migrations
                 name: "Channel",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     Link = table.Column<string>(type: "text", nullable: false),
-                    IsPrivate = table.Column<bool>(type: "boolean", nullable: false)
+                    IsPrivate = table.Column<bool>(type: "boolean", nullable: false),
+                    HasStopFactor = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -31,6 +33,7 @@ namespace SummyAITelegramBot.Infrastructure.Migrations
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ChatId = table.Column<long>(type: "bigint", nullable: false),
                     TelegramId = table.Column<long>(type: "bigint", nullable: false),
                     FirstName = table.Column<string>(type: "text", nullable: true),
                     LastName = table.Column<string>(type: "text", nullable: true),
@@ -50,10 +53,30 @@ namespace SummyAITelegramBot.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "ChannelPost",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false),
+                    ChannelId = table.Column<long>(type: "bigint", nullable: false),
+                    Text = table.Column<string>(type: "text", nullable: false),
+                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ChannelPost", x => new { x.ChannelId, x.Id });
+                    table.ForeignKey(
+                        name: "FK_ChannelPost_Channel_ChannelId",
+                        column: x => x.ChannelId,
+                        principalTable: "Channel",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "ChannelUser",
                 columns: table => new
                 {
-                    ChannelsId = table.Column<Guid>(type: "uuid", nullable: false),
+                    ChannelsId = table.Column<long>(type: "bigint", nullable: false),
                     UsersId = table.Column<long>(type: "bigint", nullable: false)
                 },
                 constraints: table =>
@@ -78,6 +101,7 @@ namespace SummyAITelegramBot.Infrastructure.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    ChannelId = table.Column<long>(type: "bigint", nullable: false),
                     AiModel = table.Column<int>(type: "integer", nullable: false),
                     IsGlobal = table.Column<bool>(type: "boolean", nullable: false),
                     MediaEnabled = table.Column<bool>(type: "boolean", nullable: false),
@@ -90,6 +114,12 @@ namespace SummyAITelegramBot.Infrastructure.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_UserSettings", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_UserSettings_Channel_ChannelId",
+                        column: x => x.ChannelId,
+                        principalTable: "Channel",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_UserSettings_Users_UserId",
                         column: x => x.UserId,
@@ -104,6 +134,11 @@ namespace SummyAITelegramBot.Infrastructure.Migrations
                 column: "UsersId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_UserSettings_ChannelId",
+                table: "UserSettings",
+                column: "ChannelId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_UserSettings_UserId",
                 table: "UserSettings",
                 column: "UserId");
@@ -112,6 +147,9 @@ namespace SummyAITelegramBot.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropTable(
+                name: "ChannelPost");
+
             migrationBuilder.DropTable(
                 name: "ChannelUser");
 

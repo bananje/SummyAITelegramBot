@@ -19,6 +19,11 @@ using SummyAITelegramBot.Core.AI.Abstractions;
 using SummyAITelegramBot.Core.Bot.Features.Channel.Abstractions;
 using SummyAITelegramBot.Core.Bot.Features.Channel.Services;
 using System.Net.Http.Headers;
+using SummyAITelegramBot.Infrastructure.Persistence;
+using Hangfire;
+using Hangfire.PostgreSql;
+using SummyAITelegramBot.Infrastructure.Jobs;
+using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
 {
@@ -68,7 +73,8 @@ var builder = WebApplication.CreateBuilder(args);
     builder.Services.AddScoped<SettingsChainOfStepsHandler>();
     builder.Services.AddScoped(typeof(IRepository<,>), typeof(GenericRepository<,>));
     builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+        options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+    builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
     builder.Services.AddScoped<ISummarizationStrategyFactory, SummarizationStrategyFactory>();
     builder.Services.AddScoped<OpenAISummarizationStrategy>();
@@ -83,7 +89,7 @@ var builder = WebApplication.CreateBuilder(args);
 
     builder.Services.AddHttpClient();
 
-    builder.Services.AddScoped<IChannelService, ChannelService>();
+    builder.Services.AddScoped<ITelegramChannelAdapter, TelegramChannelAdapter>();
 
     builder.Services.AddHttpClient("DeepSeek", client =>
     {
@@ -94,8 +100,39 @@ var builder = WebApplication.CreateBuilder(args);
     });
     builder.Services.AddScoped<ICommandHandler, SettingsCommandHandler>();
 
+    // Добавляем Hangfire + PostgreSQL
+    builder.Services.AddHangfire(config =>
+    {
+        config.SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+              .UseSimpleAssemblyNameTypeSerializer()
+              .UseRecommendedSerializerSettings()
+              .UsePostgreSqlStorage(builder.Configuration.GetConnectionString("HangfireDb"));
+    });
+
+    builder.Services.AddHangfireServer(); // Добавляет фоновые процессы
+    builder.Services.AddMediatR(cfg =>
+    {
+        cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly());
+    });
+    builder.Services.AddHostedService<ChannelMonitoringService>();
+
+    builder.Services.AddSingleton<WTelegram.Client>(provider =>
+    {      
+        return new WTelegram.Client(Config); 
+    });
 
 }
+static string Config(string what)
+{
+    return what switch
+    {
+        "api_id" => "28909018",                   // Твой api_id из Telegram
+        "api_hash" => "e2ddd24db858eefbf3c2434b895a40cf", // Твой api_hash из Telegram
+        "phone_number" => "+79183207444",       // Номер телефона (только при первом запуске) // Код из SMS/Telegram при первом входе    // Пароль, если включена двухфакторка
+        _ => null
+    };
+}
+
 var app = builder.Build();
 {
     using (var scope = app.Services.CreateScope())

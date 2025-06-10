@@ -2,7 +2,6 @@
 using SummyAITelegramBot.Core.AI.Abstractions;
 using SummyAITelegramBot.Core.AI.Attributes;
 using SummyAITelegramBot.Core.Domain.Enums;
-using SummyAITelegramBot.Core.Domain.Models;
 using System.Reflection;
 
 namespace SummyAITelegramBot.Core.AI.Factories;
@@ -34,23 +33,9 @@ public class SummarizationStrategyFactory : ISummarizationStrategyFactory
         }
     }
 
-    public ISummarizationStrategy Create(UserSettings settings)
+    public ISummarizationStrategy Create(AiModel aiModel)
     {
-        string key = "";
-
-        switch (settings.AiModel)
-        {
-            case AiModel.DeepSeek:
-                key = AiModel.DeepSeek.ToString();
-            break;
-
-            case AiModel.OpenAI:
-                key = AiModel.OpenAI.ToString();
-            break;
-
-            default:
-                throw new InvalidOperationException($"Unsupported AI model: {settings.AiModel}.");
-        }
+        var key = aiModel.ToString();
 
         if (!_strategies.TryGetValue(key, out var strategyType))
             throw new InvalidOperationException($"Strategy '{key}' not found");

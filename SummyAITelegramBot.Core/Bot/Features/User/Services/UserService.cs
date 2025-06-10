@@ -34,7 +34,7 @@ public class UserService(IRepository<long, UserEn> repository) : IUserService
         //user.Longitude = (float)location?.Longitude;
         user.LastInteractionAt = DateTime.UtcNow;
 
-        await repository.CreateOrUpdateAsync(userId, user);
+        await repository.CreateOrUpdateAsync(user);
 
         return user;
     }

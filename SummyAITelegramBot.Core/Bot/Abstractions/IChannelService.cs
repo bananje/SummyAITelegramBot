@@ -4,5 +4,5 @@ namespace SummyAITelegramBot.Core.Bot.Abstractions;
 
 internal interface IChannelService
 {
-    Task<List<ChannelPost>> GetLatestPostsAsync(string channelUrl);
+    Task<List<ChannelPostDto>> GetLatestPostsAsync(string channelUrl);
 }

@@ -6,6 +6,14 @@ namespace SummyAITelegramBot.Core.Domain.Models;
 public class UserSettings : Entity<Guid>
 {
     /// <summary>
+    /// Для какого канала настройка
+    /// </summary>
+    public long ChannelId { get; set; }
+
+    public Channel Channel { get; set; }
+
+
+    /// <summary>
     /// Модель ИИ для генерации сводки
     /// </summary>
     public AiModel AiModel { get; set; } = AiModel.DeepSeek;

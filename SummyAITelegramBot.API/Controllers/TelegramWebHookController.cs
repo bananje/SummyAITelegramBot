@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using SummyAITelegramBot.Core.Bot.Abstractions;
+using SummyAITelegramBot.Core.Bot.Features.Channel.Abstractions;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
@@ -11,12 +12,21 @@ namespace SummyAITelegramBot.API.Controllers;
 public class TelegramWebHookController(
     ICommandFactory commandFactory, 
     ITelegramBotClient botClient,
-    ICallbackFactory callbackFactory) : ControllerBase
+    ICallbackFactory callbackFactory,
+    ITelegramChannelAdapter telegramChannelAdapter) : ControllerBase
 {
     [HttpGet]
     public IActionResult Get()
     {       
         return Ok(DateTime.UtcNow);
+    }
+
+    [HttpPost("test")]
+    public async Task<IActionResult> HandleUpdate1()
+    {
+        var t = await telegramChannelAdapter.ResolveChannelAsync("@gfgdgdfgdfgdf");
+
+        return Ok();
     }
 
     [HttpPost("webhook")]

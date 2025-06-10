@@ -3,7 +3,7 @@ using SummyAITelegramBot.Infrastructure.Context;
 
 namespace SummyAITelegramBot.Infrastructure.Repository;
 
-public class GenericRepository<TId, TEntity> : IRepository<TId, TEntity> where TEntity : class
+public class GenericRepository<TId, TEntity> : IRepository<TId, TEntity> where TEntity : Entity<TId>
 {
     protected readonly AppDbContext _context;
 
@@ -12,7 +12,7 @@ public class GenericRepository<TId, TEntity> : IRepository<TId, TEntity> where T
         _context = context;
     }
 
-    public virtual System.Linq.IQueryable<TEntity> GetIQueryable()
+    public virtual IQueryable<TEntity> GetIQueryable()
     {
         return _context.Set<TEntity>().AsQueryable();
     }
@@ -24,8 +24,7 @@ public class GenericRepository<TId, TEntity> : IRepository<TId, TEntity> where T
 
     public async Task<TEntity> UpdateAsync(TEntity entity, CancellationToken cancellationToken = default)
     {
-        _context.Set<TEntity>().Update(entity);
-        await _context.SaveChangesAsync(cancellationToken);
+        _context.Set<TEntity>().Update(entity);;
         return entity;
     }
 
@@ -34,9 +33,9 @@ public class GenericRepository<TId, TEntity> : IRepository<TId, TEntity> where T
         throw new NotImplementedException();
     }
 
-    public async Task<TEntity> CreateOrUpdateAsync(TId id, TEntity entity, CancellationToken cancellationToken = default)
+    public async Task<TEntity> CreateOrUpdateAsync(TEntity entity, CancellationToken cancellationToken = default)
     {
-        var entry = await _context.Set<TEntity>().FindAsync(id, cancellationToken);
+        var entry = await _context.Set<TEntity>().FindAsync(entity.Id, cancellationToken);
 
         if (entry is null)
         {
@@ -47,14 +46,12 @@ public class GenericRepository<TId, TEntity> : IRepository<TId, TEntity> where T
             _context.Set<TEntity>().Update(entity);
         }
 
-        await _context.SaveChangesAsync(cancellationToken);
-        return entity;
+        return entry!;
     }
 
     public async Task<TEntity> AddAsync(TEntity entity, CancellationToken cancellationToken = default)
     {
         var entry = await _context.AddAsync(entity);
-        await _context.SaveChangesAsync(cancellationToken);
         return entry.Entity;
     }
 }

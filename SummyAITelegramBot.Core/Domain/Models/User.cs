@@ -8,6 +8,8 @@ public class User : Entity<long>
 
     public ICollection<Channel> Channels { get; set; } = []; // Каналы, в которых состоит пользователь
 
+    public long ChatId { get; set; }
+
     // Основные данные пользователя Telegram
     public long TelegramId { get; set; }                    // Telegram User ID
     public string? FirstName { get; set; }                  // Имя
@@ -33,4 +35,5 @@ public class User : Entity<long>
     // Можно добавить флаг для логики
     public bool IsFullyRegistered => !string.IsNullOrEmpty(PhoneNumber); // Пример логики регистрации
 
+    public void AddChannel(Channel channel) => Channels.Add(channel);
 }

@@ -8,4 +8,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<UserSettings> UserSettings => Set<UserSettings>();
 
     public DbSet<User> Users => Set<User>();
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<ChannelPost>()
+            .HasKey(cp => new { cp.ChannelId, cp.Id });
+
+        base.OnModelCreating(modelBuilder);
+    }
 }
