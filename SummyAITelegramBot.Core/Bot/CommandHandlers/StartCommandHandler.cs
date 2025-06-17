@@ -56,7 +56,7 @@ public class StartCommandHandler(
 
         var keyboard = new InlineKeyboardMarkup(new[]
         {
-             new[] { InlineKeyboardButton.WithCallbackData("🚀 Полетели", "start") },
+             new[] { InlineKeyboardButton.WithCallbackData("🚀 Каналы", "channels") },
              new[] { InlineKeyboardButton.WithCallbackData("✖️ Стоп", "stop") },
         });
 

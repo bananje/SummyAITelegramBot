@@ -12,6 +12,21 @@ public class UserSettings : Entity<Guid>
 
     public Channel Channel { get; set; }
 
+    /// <summary>
+    /// День в который отправлять сводку
+    /// 0 - если в день создания поста
+    /// </summary>
+    public int Day { get; set; }
+
+    /// <summary>
+    /// Время отправки сводок
+    /// </summary>
+    public TimeOnly? NotificationTime { get; set; }
+
+    /// <summary>
+    /// Моментально отправлять сводку при выходе поста в канале
+    /// </summary>
+    public bool InstantlyTimeNotification { get; set; }
 
     /// <summary>
     /// Модель ИИ для генерации сводки
@@ -47,14 +62,4 @@ public class UserSettings : Entity<Guid>
     /// Блокировать похожие посты в рамках каналов
     /// </summary>
     public bool IsBlockingSimilarPostsInChannels { get; set; }
-
-    /// <summary>
-    /// Время отправки сводок
-    /// </summary>
-    public TimeOnly? NotificationTime { get; set; }
-
-    /// <summary>
-    /// Моментально отправлять сводку при выходе поста в канале
-    /// </summary>
-    public bool InstantlyNotification { get; set; }
 }

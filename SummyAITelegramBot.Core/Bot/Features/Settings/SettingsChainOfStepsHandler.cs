@@ -1,8 +1,6 @@
 ﻿using Telegram.Bot.Types;
 using Telegram.Bot;
 using SummyAITelegramBot.Core.Bot.Abstractions;
-using SummyAITelegramBot.Core.Bot.Features.Settings.Handlers;
-using SummyAITelegramBot.Core.Bot.Attributes;
 using SummyAITelegramBot.Core.Domain.Models;
 using Microsoft.Extensions.Caching.Memory;
 using SummyAITelegramBot.Core.Abstractions;
@@ -13,22 +11,21 @@ using Serilog;
 
 namespace SummyAITelegramBot.Core.Bot.Features.Settings;
 
-[CallbackHandler("settings")]
 public class SettingsChainOfStepsHandler(
     ITelegramBotClient bot,
     IMemoryCache cache,
     IStaticImageService imageService,
     IRepository<Guid, UserSettings> settingsRepository,
     IRepository<long, UserEn> userRepository,
-    ILogger logger) : ICallbackHandler
+    ILogger logger) : ITelegramUpdateHandler
 {
     private const string ChainCachePrefix = "settings_chain_";
     private const string UserSettingsCachePrefix = "user_settings_";
 
-    public async Task HandleAsync(CallbackQuery query)
+    public async Task HandleAsync(Message query)
     {
         var userId = query.From.Id;
-        var chatId = query.Message.Chat.Id;
+        var chatId = query.Chat.Id;
 
         var user = await userRepository.GetByIdAsync(userId)
             ?? throw new Exception($"Ошибка при настройке пользователя {userId}.");
@@ -36,7 +33,7 @@ public class SettingsChainOfStepsHandler(
         var chainKey = $"{ChainCachePrefix}{chatId}";
         var userKey = $"{UserSettingsCachePrefix}{userId}";        
 
-        if (!cache.TryGetValue<IChainOfStepsHandler<UserSettings>>(chainKey, out var handler))
+        if (!cache.TryGetValue<IStepOnChainHandler>(chainKey, out var handler))
         {
             await SendErrorSettingsMessage(chatId, userId);
             return;
@@ -54,14 +51,14 @@ public class SettingsChainOfStepsHandler(
             {
                 var keyboard = new InlineKeyboardMarkup(new[]
                 {
-                    InlineKeyboardButton.WithCallbackData("/settings", "")
+                    InlineKeyboardButton.WithCallbackData("/settings", "/settings")
                 });
 
                 await bot.SendMessage(chatId, "Ошибка заполнения настроек! Попробуй снова.", replyMarkup: keyboard);
             }
         }
 
-        await handler.HandleAsync(bot, query, userSettings);
+        await handler.HandleAsync(query);
 
         if (handler.Next != null)
         {
@@ -74,43 +71,44 @@ public class SettingsChainOfStepsHandler(
         }
     }
 
-    public async Task StartChainAsync(long chatId, long userId)
+    public async Task StartChainAsync(Message message)
     {
+        var chatId = message.Chat.Id;
+        var userId = message.From.Id;
         var chainKey = $"{ChainCachePrefix}{chatId}";
 
         // Если цепочка уже существует — показать текущий шаг заново
-        if (cache.TryGetValue<IChainOfStepsHandler<UserSettings>>(chainKey, out var existingHandler))
+        if (cache.TryGetValue<IStepOnChainHandler>(chainKey, out var existingHandler))
         {
-            await existingHandler.ShowStepAsync(bot, chatId);
+            await existingHandler.ShowStepAsync(message);
             return;
         }
 
-        var userSettings = await settingsRepository
-            .GetIQueryable()
-            .FirstOrDefaultAsync(u => u.UserId == userId);
+        //var userSettings = await settingsRepository
+        //    .GetIQueryable()
+        //    .FirstOrDefaultAsync(u => u.UserId == userId);
 
-        if (userSettings is null)
-        {
-            userSettings = new UserSettings { UserId = userId };
-        }
+        //if (userSettings is null)
+        //{
+        //    userSettings = new UserSettings { UserId = userId };
+        //}
 
-        cache.Set($"{UserSettingsCachePrefix}{userId}", userSettings, TimeSpan.FromMinutes(5));
+        //cache.Set($"{UserSettingsCachePrefix}{userId}", userSettings, TimeSpan.FromMinutes(5));
 
+        //var notification = new NotificationsSettingsHandler();
+        //var media = new MediaStepHandler(imageService);
+        //var reduction = new ChannelReductionStepHandler();
+        //var globalSetting = new GlobalSettingsStepHadler();
+        //var finish = new FinishSettingsStepHandler();
 
-        var notification = new NotificationsSettingsHandler();
-        var media = new MediaStepHandler(imageService);
-        var reduction = new ChannelReductionStepHandler();
-        var globalSetting = new GlobalSettingsStepHadler();
-        var finish = new FinishSettingsStepHandler();
+        //notification.Next = media;
+        //media.Next = reduction;
+        //reduction.Next = globalSetting;
+        //globalSetting.Next = finish;
 
-        notification.Next = media;
-        media.Next = reduction;
-        reduction.Next = globalSetting;
-        globalSetting.Next = finish;
+        //cache.Set(chainKey, notification, TimeSpan.FromMinutes(10));
 
-        cache.Set(chainKey, notification, TimeSpan.FromMinutes(10));
-
-        await notification.ShowStepAsync(bot, chatId);
+        //await notification.ShowStepAsync(bot, chatId);
     }
 
     private async Task SendErrorSettingsMessage(long chatId, long userId)

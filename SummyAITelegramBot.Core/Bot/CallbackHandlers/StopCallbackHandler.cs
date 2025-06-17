@@ -8,8 +8,8 @@ using SummyAITelegramBot.Core.Abstractions;
 
 namespace SummyAITelegramBot.Core.Bot.CallbackHandlers;
 
-[CallbackHandler("stop")]
-public class StopCallbackHandler(ITelegramBotClient bot, IStaticImageService imageService) : ICallbackHandler
+
+public class StopCallbackHandler(ITelegramBotClient bot, IStaticImageService imageService) //: ITelegramUpdateHandler
 {
     public async Task HandleAsync(CallbackQuery query)
     {

@@ -4,37 +4,36 @@ using SummyAITelegramBot.Core.Bot.Attributes;
 using System.Reflection;
 using Telegram.Bot.Types;
 
-namespace SummyAITelegramBot.Core.Factories;
+namespace SummyAITelegramBot.Core.Bot.Factories;
 
-public class CallbackFactory : ICallbackFactory
+public class TelegramUpdateFactory : ITelegramUpdateFactory
 {
-    private readonly Dictionary<string, ICallbackHandler> _handlersByPrefix;
+    private readonly Dictionary<string, ITelegramUpdateHandler> _handlersByPrefix;
 
-    public CallbackFactory(IServiceScopeFactory scopeFactory)
+    public TelegramUpdateFactory(IServiceScopeFactory scopeFactory)
     {
         _handlersByPrefix = new();
 
         var handlerTypes = AppDomain.CurrentDomain
             .GetAssemblies()
             .SelectMany(x => x.GetTypes())
-            .Where(t => typeof(ICallbackHandler).IsAssignableFrom(t) && !t.IsInterface && !t.IsAbstract);
+            .Where(t => typeof(ITelegramUpdateHandler)
+            .IsAssignableFrom(t) && !t.IsInterface && !t.IsAbstract);
 
         foreach (var type in handlerTypes)
         {
-            var attr = type.GetCustomAttribute<CallbackHandlerAttribute>();
+            var attr = type.GetCustomAttribute<TelegramUpdateHandlerAttribute>();
             if (attr != null)
             {
                 var scope = scopeFactory.CreateScope();
-                var handler = (ICallbackHandler)scope.ServiceProvider.GetRequiredService(type);
+                var handler = (ITelegramUpdateHandler)scope.ServiceProvider.GetRequiredService(type);
                 _handlersByPrefix[attr.Prefix] = handler;
             }
         }
     }
 
-
-    public async Task DispatchAsync(CallbackQuery query)
+    public async Task DispatchAsync(Message query, string prefix)
     {
-        var prefix = query.Data?.Split(':').FirstOrDefault();
         if (string.IsNullOrEmpty(prefix)) return;
 
         if (_handlersByPrefix.TryGetValue(prefix, out var handler))

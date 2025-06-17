@@ -1,27 +1,27 @@
 ﻿using Microsoft.Extensions.Hosting;
 using WTelegram;
-using MediatR;
 using TL;
 using SummyAITelegramBot.Core.Bot.Features.Channel.DTO;
 using SummyAITelegramBot.Core.Commands;
 using SummyAITelegramBot.Core.Domain.Enums;
 using Grpc.Core;
+using MediatR;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace SummyAITelegramBot.Infrastructure.Jobs;
 
 public class ChannelMonitoringService : BackgroundService
 {
     private readonly Client _client;
-    private readonly ISender _sender;
     private int _pts, _qts, _unreadCount;
+    private readonly IServiceProvider _serviceProvider;
 
     private DateTime _date;
 
-    public ChannelMonitoringService(Client client, ISender sender)
+    public ChannelMonitoringService(Client client, IServiceProvider serviceProvider)
     {
+        _serviceProvider = serviceProvider;
         _client = client;
-        _sender = sender;
-        // подписываемся на колбэк, чтобы не дублировать логику обработки
         _client.OnUpdates += OnUpdates;
     }
 
@@ -114,7 +114,10 @@ public class ChannelMonitoringService : BackgroundService
                           : null
         };
 
-        // Шлём команду в MediatR (или ваш ISender) для дальнейшей обработки
-        await _sender.Send(new ProcessTelegramChannelPostCommand(dto, action));
+        using (var scope = _serviceProvider.CreateScope())
+        {
+            var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
+            await mediator.Send(new ProcessTelegramChannelPostCommand(dto, action));
+        }
     }
 }

@@ -2,24 +2,29 @@
 using Telegram.Bot.Types;
 using Telegram.Bot;
 using SummyAITelegramBot.Core.Bot.Abstractions;
-using SummyAITelegramBot.Core.Domain.Models;
 using Telegram.Bot.Types.Enums;
+using SummyAITelegramBot.Core.Abstractions;
+using SummyAITelegramBot.Core.Domain.Models;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.EntityFrameworkCore;
 
 namespace SummyAITelegramBot.Core.Bot.Features.Settings.Handlers;
 
-public class NotificationsSettingsHandler(ITelegramBotClient bot) 
-    //: IStepOnChainHandler<UserSettings, CallbackQuery>
+public class NotificationTimeSettingHandler(
+    ITelegramBotClient bot,
+    IUnitOfWork unitOfWork,
+    IMemoryCache cache) : IStepOnChainHandler
 {
-    private static readonly string CallbackPrefix = "settings:notify:time:";
-
     public IStepOnChainHandler? Next { get; set; }
 
-    public async Task ShowStepAsync(CallbackQuery query)
+    private static readonly string CallbackPrefix = "add_channel_chain_time:";
+
+    public async Task ShowStepAsync(Update update)
     {
-        var chatId = query.Message.Chat.Id;
+        var chatId = update.Message.Chat.Id;
         var text =
-            "<b>1️⃣ Начнём с первой настройки</b>\n\n" +
-            "⏱️ В какое время ты хочешь получать сводки?\n\n";
+             "<b>1️⃣ Начнём с первой настройки</b>\n\n" +
+             "⏱️ В какое время ты хочешь получать сводки?\n\n";
 
         var times = new[]
         {
@@ -51,11 +56,28 @@ public class NotificationsSettingsHandler(ITelegramBotClient bot)
             replyMarkup: new InlineKeyboardMarkup(keyboard));
     }
 
-    public async Task HandleAsync(CallbackQuery query, UserSettings settings)
+    public async Task HandleAsync(Update update)
     {
+        var query = update.CallbackQuery;
+
         if (query.Data != null && query.Data.StartsWith(CallbackPrefix))
         {
+            var settingsRepostitory = unitOfWork.Repository<Guid, UserSettings>();
+            var channelRepository = unitOfWork.Repository<long, Domain.Models.Channel>();
             var timeStr = query.Data.Substring(CallbackPrefix.Length);
+
+            long? channelId = await channelRepository.GetIQueryable()
+                .OrderByDescending(u => u.AddedDate)
+                .Select(u => u.Id)
+                .FirstOrDefaultAsync();
+
+            if (channelId is null) { throw new Exception("Ошибка. Канал не найден"); }
+
+            var settings = new UserSettings
+            {
+                ChannelId = channelId.Value,
+                UserId = update.Message.From.Id
+            };
 
             if (timeStr == "realtime")
             {
@@ -72,8 +94,11 @@ public class NotificationsSettingsHandler(ITelegramBotClient bot)
                 return;
             }
 
-            //if (Next != null)
-            //    await Next.ShowStepAsync(query);
+            await settingsRepostitory.CreateOrUpdateAsync(settings);
+            await unitOfWork.CommitAsync();
+
+            if (Next != null)
+                await Next.ShowStepAsync(update);
         }
     }
 }

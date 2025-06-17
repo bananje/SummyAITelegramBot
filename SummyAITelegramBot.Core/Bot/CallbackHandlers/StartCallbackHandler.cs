@@ -13,11 +13,11 @@ namespace SummyAITelegramBot.Core.Bot.CallbackHandlers;
 /// </summary>
 /// <param name="bot"></param>
 /// <param name="imageService"></param>
-[CallbackHandler("start")]
+
 public class StartCallbackHandler(
     ITelegramBotClient bot,
     IStaticImageService imageService
-    ) : ICallbackHandler
+    ) //: ITelegramUpdateHandler
 {
     public async Task HandleAsync(CallbackQuery query)
     {

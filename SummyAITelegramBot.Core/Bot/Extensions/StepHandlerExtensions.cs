@@ -5,8 +5,8 @@ namespace SummyAITelegramBot.Core.Bot.Extensions;
 
 public static class StepHandlerExtensions
 {
-    public static THandler SetNext<THandler>(this THandler current, IChainOfStepsHandler<UserSettings> next)
-        where THandler : IChainOfStepsHandler<UserSettings>
+    public static THandler SetNext<THandler>(this THandler current, IStepOnChainHandler<UserSettings> next)
+        where THandler : IStepOnChainHandler<UserSettings>
     {
         current.Next = next;
         return current;

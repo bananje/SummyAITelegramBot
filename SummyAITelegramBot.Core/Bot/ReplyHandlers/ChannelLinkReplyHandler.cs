@@ -7,31 +7,25 @@ using SummyAITelegramBot.Core.Domain.Models;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 
-namespace SummyAITelegramBot.Core.Bot.CommandHandlers;
+namespace SummyAITelegramBot.Core.Bot.ReplyHandlers;
 
-/// <summary>
-/// Обработчик команды добавления канала
-/// </summary>
-[CommandHandler("add")]
-public class AddChannelCommandHandler(
+[ReplyHandlerAttribute("Отправьте ссылку на канал:")]
+public class ChannelLinkReplyHandler(
+    IUnitOfWork unitOfWork,
     ITelegramBotClient botClient,
-    ITelegramChannelAdapter telegramChannelService,
-    IUnitOfWork unitOfWork
-    ) : ICommandHandler
+    ITelegramChannelAdapter telegramChannelService) : IReplyHandler
 {
-    public async Task HandleAsync(Message message)
+    public async Task HandleAsync(Message replyMessage)
     {
-        var chatId = message.Chat.Id;
-        var userId = message.From!.Id;
-        var channelLink = message.Text;
+        var channelLink = replyMessage.Text;
+        var chatId = replyMessage.Chat.Id;
+        var userId = replyMessage.From.Id;
 
         var channelRepository = unitOfWork.Repository<long, Channel>();
         var userRepository = unitOfWork.Repository<long, Domain.Models.User>();
 
-        var user = await userRepository.GetByIdAsync(userId)
-            ?? throw new Exception($"Ошибка при настройке пользователя {userId}.");
-
-        var channelExist = await channelRepository.GetIQueryable().AnyAsync(u => u.Link == channelLink);
+        var channelExist = await channelRepository.GetIQueryable()
+            .AnyAsync(u => u.Link == replyMessage.Text);
 
         if (channelExist)
         {
@@ -40,7 +34,10 @@ public class AddChannelCommandHandler(
             // TODO: перенаправление на изначальную страницу, где можно выбрать добавление канала
         }
 
-        var channelInfo = await telegramChannelService.ResolveChannelAsync(channelLink!);
+        var user = await userRepository.GetByIdAsync(userId)
+            ?? throw new Exception($"Ошибка при настройке пользователя {userId}.");
+
+        var channelInfo = await telegramChannelService.ResolveChannelAsync(channelLink);
 
         var channel = new Channel
         {

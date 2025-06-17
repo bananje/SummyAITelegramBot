@@ -35,18 +35,19 @@ public class GenericRepository<TId, TEntity> : IRepository<TId, TEntity> where T
 
     public async Task<TEntity> CreateOrUpdateAsync(TEntity entity, CancellationToken cancellationToken = default)
     {
-        var entry = await _context.Set<TEntity>().FindAsync(entity.Id, cancellationToken);
+        var entry = await _context.Set<TEntity>().FindAsync(new object[] { entity.Id }, cancellationToken);
 
         if (entry is null)
         {
-            await _context.AddAsync(entity);
+            var added = (await _context.AddAsync(entity, cancellationToken)).Entity;
+            return added;
         }
         else
         {
-            _context.Set<TEntity>().Update(entity);
+            _context.Entry(entry).CurrentValues.SetValues(entity);
+            _context.Update(entry);
+            return entry;
         }
-
-        return entry!;
     }
 
     public async Task<TEntity> AddAsync(TEntity entity, CancellationToken cancellationToken = default)

@@ -3,16 +3,16 @@
 namespace SummyAITelegramBot.Core.Bot.Abstractions;
 
 /// <summary>
-///  Менеджер обработки колл-бека в зависимости от маршрутизатора
+///  Менеджер обработки updates в зависимости от маршрутизатора
 /// </summary>
-public interface ICallbackHandler 
+public interface ITelegramUpdateHandler
 {
     /// <summary>
-    /// Обработать текущий кол-бэк
+    /// Обработать текущий update
     /// </summary>
     /// <param name="query"></param>
     /// <returns></returns>
-    Task HandleAsync(CallbackQuery query);
+    Task HandleAsync(Update update);
 
     /// <summary>
     /// Запустить цепочку связанных кол-бэков
@@ -21,5 +21,5 @@ public interface ICallbackHandler
     /// <param name="bot"></param>
     /// <param name="chatId"></param>
     /// <returns></returns>
-    Task StartChainAsync(long chatId) => Task.CompletedTask;
+    Task StartChainAsync(Update update) => Task.CompletedTask;
 }

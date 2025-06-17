@@ -24,7 +24,7 @@ public class TelegramSenderService(
             var userSettings = user.UserSettings.FirstOrDefault(u => u.ChannelId == post.ChannelId)
                 ?? throw new Exception($"User with id: {user.Id} does not have settings");
 
-            if (userSettings.InstantlyNotification)
+            if (userSettings.InstantlyTimeNotification)
             {
                 await telegramBotClient.SendMessage(chatId: user.ChatId, text: "push" + post.Text);
             }

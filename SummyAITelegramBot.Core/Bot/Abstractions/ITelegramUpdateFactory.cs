@@ -5,7 +5,7 @@ namespace SummyAITelegramBot.Core.Bot.Abstractions;
 /// <summary>
 /// Фабрика создания обработчиков кол-бэков
 /// </summary>
-public interface ICallbackFactory
+public interface ITelegramUpdateFactory
 {
-    Task DispatchAsync(CallbackQuery callbackQuery);
+    Task DispatchAsync(Update update, string prefix);
 }

@@ -57,7 +57,7 @@ namespace SummyAITelegramBot.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Channel");
+                    b.ToTable("Channels");
                 });
 
             modelBuilder.Entity("SummyAITelegramBot.Core.Domain.Models.ChannelPost", b =>
@@ -77,7 +77,7 @@ namespace SummyAITelegramBot.Infrastructure.Migrations
 
                     b.HasKey("ChannelId", "Id");
 
-                    b.ToTable("ChannelPost");
+                    b.ToTable("ChannelPosts");
                 });
 
             modelBuilder.Entity("SummyAITelegramBot.Core.Domain.Models.User", b =>
@@ -100,7 +100,7 @@ namespace SummyAITelegramBot.Infrastructure.Migrations
                     b.Property<bool>("IsBot")
                         .HasColumnType("boolean");
 
-                    b.Property<bool?>("IsPremium")
+                    b.Property<bool?>("HasTgPremium")
                         .HasColumnType("boolean");
 
                     b.Property<string>("LanguageCode")
@@ -144,7 +144,7 @@ namespace SummyAITelegramBot.Infrastructure.Migrations
                     b.Property<long>("ChannelId")
                         .HasColumnType("bigint");
 
-                    b.Property<bool>("InstantlyNotification")
+                    b.Property<bool>("InstantlyTimeNotification")
                         .HasColumnType("boolean");
 
                     b.Property<bool>("IsBlockingSimilarPostsInChannels")

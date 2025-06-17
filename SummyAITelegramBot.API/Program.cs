@@ -3,7 +3,6 @@ using Serilog;
 using SummyAITelegramBot.Core.Bot.Abstractions;
 using SummyAITelegramBot.Core.Bot.CommandHandlers;
 using SummyAITelegramBot.Core.Bot.Features.Settings;
-using SummyAITelegramBot.Core.Factories;
 using SummyAITelegramBot.Core.Abstractions;
 using SummyAITelegramBot.Infrastructure.Repository;
 using Telegram.Bot;
@@ -22,8 +21,8 @@ using System.Net.Http.Headers;
 using SummyAITelegramBot.Infrastructure.Persistence;
 using Hangfire;
 using Hangfire.PostgreSql;
-using SummyAITelegramBot.Infrastructure.Jobs;
-using System.Reflection;
+using SummyAITelegramBot.Core.Commands;
+using SummyAITelegramBot.Core.Bot.Factories;
 
 var builder = WebApplication.CreateBuilder(args);
 {
@@ -57,16 +56,25 @@ var builder = WebApplication.CreateBuilder(args);
         .WithScopedLifetime());
 
     builder.Services.Scan(scan => scan
-       .FromAssemblyOf<ICallbackHandler>()
+       .FromAssemblyOf<ITelegramUpdateHandler>()
        .AddClasses(classes => classes
-           .AssignableTo<ICallbackHandler>()
-           .Where(t => !t.IsAbstract)) 
+           .AssignableTo<ITelegramUpdateHandler>()
+           .Where(t => !t.IsAbstract))
        .AsSelfWithInterfaces()
        .WithScopedLifetime());
 
+    builder.Services.Scan(scan => scan
+       .FromAssemblyOf<IReplyHandler>()
+       .AddClasses(classes => classes
+           .AssignableTo<IReplyHandler>()
+           .Where(t => !t.IsAbstract))
+       .AsSelfWithInterfaces()
+       .WithScopedLifetime());
 
     builder.Services.AddScoped<ICommandFactory, CommandFactory>();
-    builder.Services.AddScoped<ICallbackFactory, CallbackFactory>();
+    builder.Services.AddScoped<ITelegramUpdateFactory, TelegramUpdateFactory>();
+    builder.Services.AddScoped<IReplyFactory, ReplyFactory>();
+
     builder.Services.AddScoped<IStaticImageService, StaticImageService>();
 
     builder.Services.AddScoped<IUserService, UserService>();
@@ -94,7 +102,7 @@ var builder = WebApplication.CreateBuilder(args);
     builder.Services.AddHttpClient("DeepSeek", client =>
     {
         client.BaseAddress = new Uri("https://openrouter.ai/api/v1/");
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "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");
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "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");
 
         client.DefaultRequestHeaders.Add("X-Title", "SummyAI");
     });
@@ -112,14 +120,17 @@ var builder = WebApplication.CreateBuilder(args);
     builder.Services.AddHangfireServer(); // Добавляет фоновые процессы
     builder.Services.AddMediatR(cfg =>
     {
-        cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly());
+        cfg.RegisterServicesFromAssembly(typeof(ProcessTelegramChannelPostCommandHandler).Assembly);
     });
-    builder.Services.AddHostedService<ChannelMonitoringService>();
+    //builder.Services.AddHostedService<ChannelMonitoringService>();
 
     builder.Services.AddSingleton<WTelegram.Client>(provider =>
     {      
         return new WTelegram.Client(Config); 
     });
+
+    builder.Services.AddScoped<IPostService, PostService>();
+    builder.Services.AddScoped<ITelegramSenderService, TelegramSenderService>();
 
 }
 static string Config(string what)

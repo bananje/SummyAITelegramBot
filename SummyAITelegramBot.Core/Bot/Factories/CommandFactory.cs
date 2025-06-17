@@ -4,7 +4,7 @@ using SummyAITelegramBot.Core.Bot.Attributes;
 using System.Reflection;
 using Telegram.Bot.Types;
 
-namespace SummyAITelegramBot.Core.Factories;
+namespace SummyAITelegramBot.Core.Bot.Factories;
 
 public class CommandFactory : ICommandFactory
 {

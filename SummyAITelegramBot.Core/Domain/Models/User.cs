@@ -1,4 +1,5 @@
 ﻿using SummyAITelegramBot.Core.Abstractions;
+using TL;
 
 namespace SummyAITelegramBot.Core.Domain.Models;
 
@@ -8,6 +9,11 @@ public class User : Entity<long>
 
     public ICollection<Channel> Channels { get; set; } = []; // Каналы, в которых состоит пользователь
 
+    /// <summary>
+    /// Действует ли подписка
+    /// </summary>
+    public bool HasSubscriptionPremium { get; set; }
+
     public long ChatId { get; set; }
 
     // Основные данные пользователя Telegram
@@ -16,7 +22,7 @@ public class User : Entity<long>
     public string? LastName { get; set; }                   // Фамилия
     public string? Username { get; set; }                   // @username
     public string? LanguageCode { get; set; }               // Язык интерфейса пользователя (ru, en и т.п.)
-    public bool? IsPremium { get; set; }                    // Telegram Premium
+    public bool? HasTgPremium { get; set; }                    // Telegram Premium
 
     // Контактные данные (только если пользователь дал разрешение)
     public string? PhoneNumber { get; set; }                // Телефон (через кнопку "Поделиться контактом")

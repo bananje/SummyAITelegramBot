@@ -9,6 +9,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
     public DbSet<User> Users => Set<User>();
 
+    public DbSet<ChannelPost> ChannelPosts => Set<ChannelPost>();
+
+    public DbSet<Channel> Channels => Set<Channel>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<ChannelPost>()

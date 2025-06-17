@@ -13,6 +13,11 @@ public class Channel : Entity<long>
     /// </summary>
     public bool HasStopFactor { get; set; }
 
+    /// <summary>
+    /// Добавлен в систему
+    /// </summary>
+    public DateTime AddedDate { get; set; }
+
     public ICollection<User> Users { get; set; } = [];  
 
     public ICollection<ChannelPost> Posts { get; set; } = [];

@@ -7,13 +7,13 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace SummyAITelegramBot.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialMigration : Migration
+    public partial class Initial : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
-                name: "Channel",
+                name: "Channels",
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false)
@@ -24,7 +24,7 @@ namespace SummyAITelegramBot.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Channel", x => x.Id);
+                    table.PrimaryKey("PK_Channels", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -53,7 +53,7 @@ namespace SummyAITelegramBot.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "ChannelPost",
+                name: "ChannelPosts",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false),
@@ -63,11 +63,11 @@ namespace SummyAITelegramBot.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_ChannelPost", x => new { x.ChannelId, x.Id });
+                    table.PrimaryKey("PK_ChannelPosts", x => new { x.ChannelId, x.Id });
                     table.ForeignKey(
-                        name: "FK_ChannelPost_Channel_ChannelId",
+                        name: "FK_ChannelPosts_Channels_ChannelId",
                         column: x => x.ChannelId,
-                        principalTable: "Channel",
+                        principalTable: "Channels",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -83,9 +83,9 @@ namespace SummyAITelegramBot.Infrastructure.Migrations
                 {
                     table.PrimaryKey("PK_ChannelUser", x => new { x.ChannelsId, x.UsersId });
                     table.ForeignKey(
-                        name: "FK_ChannelUser_Channel_ChannelsId",
+                        name: "FK_ChannelUser_Channels_ChannelsId",
                         column: x => x.ChannelsId,
-                        principalTable: "Channel",
+                        principalTable: "Channels",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
@@ -115,9 +115,9 @@ namespace SummyAITelegramBot.Infrastructure.Migrations
                 {
                     table.PrimaryKey("PK_UserSettings", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_UserSettings_Channel_ChannelId",
+                        name: "FK_UserSettings_Channels_ChannelId",
                         column: x => x.ChannelId,
-                        principalTable: "Channel",
+                        principalTable: "Channels",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
@@ -148,7 +148,7 @@ namespace SummyAITelegramBot.Infrastructure.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "ChannelPost");
+                name: "ChannelPosts");
 
             migrationBuilder.DropTable(
                 name: "ChannelUser");
@@ -157,7 +157,7 @@ namespace SummyAITelegramBot.Infrastructure.Migrations
                 name: "UserSettings");
 
             migrationBuilder.DropTable(
-                name: "Channel");
+                name: "Channels");
 
             migrationBuilder.DropTable(
                 name: "Users");
