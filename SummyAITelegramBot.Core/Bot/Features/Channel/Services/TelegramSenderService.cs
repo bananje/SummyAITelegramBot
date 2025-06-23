@@ -36,7 +36,7 @@ public class TelegramSenderService(
 
             if (userSettings.InstantlyTimeNotification)
             {
-                await telegramBotClient.SendMessage(chatId: user.ChatId, text: "push" + post.Text);
+                await telegramBotClient.SendMessage(chatId: user.Id, text: "push" + post.Text);
             }
             else
             {
@@ -55,7 +55,7 @@ public class TelegramSenderService(
         }
     }
 
-    private async Task NotifyUserAsync(string text, long chatId)
+    public async Task NotifyUserAsync(string text, long chatId)
     {
         await telegramBotClient.SendMessage(chatId, $"(отложено) {text}");
     }

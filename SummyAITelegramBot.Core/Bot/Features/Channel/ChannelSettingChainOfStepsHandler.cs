@@ -3,12 +3,14 @@ using Serilog;
 using SummyAITelegramBot.Core.Abstractions;
 using SummyAITelegramBot.Core.Bot.Abstractions;
 using SummyAITelegramBot.Core.Bot.Attributes;
+using SummyAITelegramBot.Core.Bot.Extensions;
 using SummyAITelegramBot.Core.Bot.Features.Channel.Abstractions;
 using SummyAITelegramBot.Core.Bot.Features.Channel.Handlers;
 using SummyAITelegramBot.Core.Bot.Features.Settings.Handlers;
 using SummyAITelegramBot.Core.Domain.Models;
 using Telegram.Bot;
 using Telegram.Bot.Types;
+using Telegram.Bot.Types.ReplyMarkups;
 
 namespace SummyAITelegramBot.Core.Bot.Features.Channel;
 
@@ -76,6 +78,25 @@ public class ChannelSettingChainOfStepsHandler(
             }
             else
             {
+                var text = $"""
+                <b>Канал успешно добавлен в вашу библиотеку</b>
+
+                Для добавления других каналов, нажмите (Канал📣)
+
+                *Сводки будут прилетать в этот чат, согласно вашим настройкам 📢
+                """;
+
+                await using var stream = imageService.GetImageStream("add_channel.jpg");
+
+                var keyboard = new InlineKeyboardMarkup(new[]
+                {
+            InlineKeyboardButton.WithCallbackData("Канал📣", "/add"),
+        });
+
+                await bot.SendOrEditMessageAsync(
+                    cache, update, photo: stream, replyMarkup: keyboard, caption: text,
+                    parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
+
                 cache.Remove(chainKey);
                 cache.Remove(userSettingsCacheKey);
 
@@ -127,16 +148,10 @@ public class ChannelSettingChainOfStepsHandler(
             bot,
             unitOfWork,
             cache);
-        var finish = new FinishChannelAddingHandler(
-            bot,
-            unitOfWork,
-            imageService,
-            cache);
 
         addChannelHandler.Next = settingsConfHandler;
         settingsConfHandler.Next = notificationDaySettingHandler;
         notificationDaySettingHandler.Next = notificationTimeSettingHandler;
-        notificationTimeSettingHandler.Next = finish;
 
         var userSettings = new UserSettings { UserId = chatId };
         cache.Set($"{SettingsCachePrefix}{chatId}", userSettings, TimeSpan.FromMinutes(5));

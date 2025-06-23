@@ -102,7 +102,7 @@ var builder = WebApplication.CreateBuilder(args);
     builder.Services.AddHttpClient("DeepSeek", client =>
     {
         client.BaseAddress = new Uri("https://openrouter.ai/api/v1/");
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "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");
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "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");
 
         client.DefaultRequestHeaders.Add("X-Title", "SummyAI");
     });
