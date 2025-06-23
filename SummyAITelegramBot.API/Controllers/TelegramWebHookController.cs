@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 using SummyAITelegramBot.Core.Bot.Abstractions;
 using SummyAITelegramBot.Core.Bot.Utils;
 using Telegram.Bot;
@@ -10,7 +11,10 @@ namespace SummyAITelegramBot.API.Controllers;
 [Route("api/[controller]")]
 [ApiController]
 public class TelegramWebHookController(
-    ITelegramUpdateFactory telegramUpdateFactory) : ControllerBase
+    ITelegramUpdateFactory telegramUpdateFactory,
+    Serilog.ILogger logger,
+    IMemoryCache cache,
+    ITelegramBotClient botClient) : ControllerBase
 {
     [HttpGet]
     public IActionResult Get()
@@ -18,55 +22,66 @@ public class TelegramWebHookController(
         return Ok(DateTime.UtcNow);
     }
 
-    [HttpPost("webhookп")]
+    [HttpPost("webhookj")]
     public IActionResult HandleUpdate1([FromBody] Update update)
     { return Ok(); }
 
     [HttpPost("webhook")]
     public async Task<IActionResult> HandleUpdate([FromBody] Update update)
-    {
-        if (update.Type == UpdateType.Message 
-                && update.Message?.Text is { } commandPrefix
-                && update.Message!.ReplyToMessage is null)
+   {
+        try
         {
-            HttpContext.Items["chatId"] = update.Message.Chat.Id;
-            
-            await telegramUpdateFactory.DispatchAsync(update.Message!, commandPrefix);
-            return Ok();
-        }
-
-        if (update.Type == UpdateType.CallbackQuery)
-        {
-            HttpContext.Items["chatId"] = update.CallbackQuery.Message.Chat.Id;
-            if (update.CallbackQuery!.Data!.StartsWith("/"))
+            // обработка ответа с ссылкой на канал (частный случай)
+            if (update.Type == UpdateType.Message
+                && TelegramHelper.IsTelegramChannelLink(update.Message?.Text))
             {
-                var callBack = update.CallbackQuery!;
-
-                await telegramUpdateFactory.DispatchAsync(
-                    callBack.Message,
-                    callBack.Message.Text
-                        .TrimStart('/')
-                        .ToLowerInvariant());
-
+                HttpContext.Items["chatId"] = update.Message.Chat.Id;
+                await telegramUpdateFactory.DispatchAsync(update, "add");
                 return Ok();
             }
 
-            await telegramUpdateFactory.DispatchAsync(
-                update.CallbackQuery.Message!,
-                update.CallbackQuery.Data?.Split(':').FirstOrDefault());
+            if (update.Type == UpdateType.Message
+                    && update.Message?.Text is { } commandPrefix
+                    && update.Message!.ReplyToMessage is null)
+            {
+                HttpContext.Items["chatId"] = update.Message.Chat.Id;
 
-            return Ok();
+                await telegramUpdateFactory.DispatchAsync(update, commandPrefix
+                    .TrimStart('/')
+                    .ToLowerInvariant());
+                return Ok();
+            }
+
+            if (update.Type == UpdateType.CallbackQuery)
+            {
+                HttpContext.Items["chatId"] = update.CallbackQuery.Message.Chat.Id;
+                if (update.CallbackQuery!.Data!.StartsWith("/"))
+                {
+                    var callBack = update.CallbackQuery!;
+
+                    var callBackPrefix = callBack.Message.Text is null 
+                        ? update.CallbackQuery.Data
+                        : callBack.Message.Text;
+
+                    await telegramUpdateFactory.DispatchAsync(
+                        update,
+                        callBackPrefix
+                            .TrimStart('/')
+                            .ToLowerInvariant());
+                    return Ok();
+                }
+
+                await telegramUpdateFactory.DispatchAsync(
+                    update,
+                    update.CallbackQuery.Data?.Split(':').FirstOrDefault());
+
+                return Ok();
+            }
         }
-
-        // обработка ответа с ссылкой на канал (частный случай)
-        if (update.Type == UpdateType.Message
-            && TelegramHelper.IsTelegramChannelLink(update.Message?.Text))
+        catch(Exception ex)
         {
-            HttpContext.Items["chatId"] = update.Message.Chat.Id;
-            await telegramUpdateFactory.DispatchAsync(update.Message, "add");
-
-            return Ok();
-        }
+            logger.Error(ex, ex.Message);
+        }       
 
         return Ok();
     }

@@ -18,7 +18,7 @@ public class DeepSeekSummarizationStrategy : ISummarizationStrategy
     {
         var request = new
         {
-            model = "deepseek/deepseek-r1-0528:free",
+            model = "deepseek/deepseek-r1-0528-qwen3-8b:free",
             messages = new[]
                 {
                     new { role = "system", content = "Ты — ассистент, делающий краткие, ёмкие сводки длинных текстов." },

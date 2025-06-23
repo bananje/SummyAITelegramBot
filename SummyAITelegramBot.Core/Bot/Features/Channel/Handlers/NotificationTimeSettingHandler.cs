@@ -6,22 +6,21 @@ using Telegram.Bot.Types.Enums;
 using SummyAITelegramBot.Core.Abstractions;
 using SummyAITelegramBot.Core.Domain.Models;
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.EntityFrameworkCore;
+using FluentResults;
 
 namespace SummyAITelegramBot.Core.Bot.Features.Settings.Handlers;
 
 public class NotificationTimeSettingHandler(
     ITelegramBotClient bot,
-    IUnitOfWork unitOfWork,
-    IMemoryCache cache) : IStepOnChainHandler
+    IUnitOfWork unitOfWork) : IStepOnChainHandler<UserSettings>
 {
-    public IStepOnChainHandler? Next { get; set; }
+    public IStepOnChainHandler<UserSettings>? Next { get; set; }
 
-    private static readonly string CallbackPrefix = "add_channel_chain_time:";
+    private static readonly string CallbackPrefix = "add:channel_chain_time_";
 
     public async Task ShowStepAsync(Update update)
     {
-        var chatId = update.Message.Chat.Id;
+        var chatId = update.CallbackQuery.Message.Chat.Id;
         var text =
              "<b>1️⃣ Начнём с первой настройки</b>\n\n" +
              "⏱️ В какое время ты хочешь получать сводки?\n\n";
@@ -52,11 +51,12 @@ public class NotificationTimeSettingHandler(
                 .ToList());
         }
 
-        await bot.SendMessage(chatId, text: text, parseMode: ParseMode.Html,
+        await bot.EditMessageText(chatId, update.CallbackQuery.Message.Id, 
+            text: text, parseMode: ParseMode.Html,
             replyMarkup: new InlineKeyboardMarkup(keyboard));
     }
 
-    public async Task HandleAsync(Update update)
+    public async Task<Result> HandleAsync(Update update, UserSettings userSettings)
     {
         var query = update.CallbackQuery;
 
@@ -66,39 +66,30 @@ public class NotificationTimeSettingHandler(
             var channelRepository = unitOfWork.Repository<long, Domain.Models.Channel>();
             var timeStr = query.Data.Substring(CallbackPrefix.Length);
 
-            long? channelId = await channelRepository.GetIQueryable()
-                .OrderByDescending(u => u.AddedDate)
-                .Select(u => u.Id)
-                .FirstOrDefaultAsync();
-
-            if (channelId is null) { throw new Exception("Ошибка. Канал не найден"); }
-
-            var settings = new UserSettings
-            {
-                ChannelId = channelId.Value,
-                UserId = update.Message.From.Id
-            };
-
             if (timeStr == "realtime")
             {
-                settings.InstantlyTimeNotification = true;
+                userSettings.InstantlyTimeNotification = true;
             }
             else if (TimeOnly.TryParse(timeStr, out var time))
             {
-                settings.NotificationTime = time;
-                settings.InstantlyTimeNotification = false;
+                userSettings.NotificationTime = time;
+                userSettings.InstantlyTimeNotification = false;
             }
             else
             {
-                await bot.SendMessage(query.Message.Chat.Id, "❌ Ошибка: неверное время.");
-                return;
-            }
+                await bot.EditMessageText(
+                    query.Message.Chat.Id,
+                    query.Message.Id, "❌ Ошибка: неверное время.");
 
-            await settingsRepostitory.CreateOrUpdateAsync(settings);
-            await unitOfWork.CommitAsync();
+                return Result.Fail("");
+            }
 
             if (Next != null)
                 await Next.ShowStepAsync(update);
+
+            return Result.Ok();
         }
+
+        return Result.Fail("");
     }
 }

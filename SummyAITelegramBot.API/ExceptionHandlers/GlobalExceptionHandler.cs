@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Telegram.Bot.Types.ReplyMarkups;
 using Telegram.Bot;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace SummyAITelegramBot.API.ExceptionHandlers;
 

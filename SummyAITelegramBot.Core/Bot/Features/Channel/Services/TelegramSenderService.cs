@@ -21,8 +21,18 @@ public class TelegramSenderService(
 
         foreach (var user in users)
         {
-            var userSettings = user.UserSettings.FirstOrDefault(u => u.ChannelId == post.ChannelId)
-                ?? throw new Exception($"User with id: {user.Id} does not have settings");
+            var userSettings = new UserSettings();
+            var globalSettings = user.UserSettings.FirstOrDefault(u => u.IsGlobal);
+
+            if (globalSettings is not null)
+            {
+                userSettings = globalSettings;
+            }
+            else
+            {
+                userSettings = user.UserSettings.FirstOrDefault(u => u.ChannelId == post.ChannelId);
+            }
+
 
             if (userSettings.InstantlyTimeNotification)
             {

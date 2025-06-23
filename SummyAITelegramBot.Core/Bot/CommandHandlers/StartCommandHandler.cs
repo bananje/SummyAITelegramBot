@@ -1,7 +1,9 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
 using SummyAITelegramBot.Core.Abstractions;
 using SummyAITelegramBot.Core.Bot.Abstractions;
 using SummyAITelegramBot.Core.Bot.Attributes;
+using SummyAITelegramBot.Core.Bot.Extensions;
 using SummyAITelegramBot.Core.Bot.Features.User.Abstractions;
 using Telegram.Bot;
 using Telegram.Bot.Types;
@@ -13,30 +15,34 @@ namespace SummyAITelegramBot.Core.Bot.CommandHandlers;
 /// <summary>
 /// Обработчик команды /start
 /// </summary>
-[CommandHandler("start")]
+[TelegramUpdateHandler("start", true)]
 public class StartCommandHandler(
     ITelegramBotClient botClient, ILogger<StartCommandHandler> logger,
     IUserService userService,
+    IMemoryCache cache,
     IStaticImageService imageService,
-    IRepository<long, Domain.Models.User> userRepository) : ICommandHandler
+    IRepository<long, Domain.Models.User> userRepository) : ITelegramUpdateHandler
 {
-    public async Task HandleAsync(Message message)
+    public async Task HandleAsync(Update upd)
     {
+        var message = upd.Message;
         string text = "";
         var user = await userRepository.GetByIdAsync(message.From.Id);
+        string imagePath = "";
 
         if (user?.LastInteractionAt is not null)
         {
              text = $"""
-                <b>{message.From.FirstName}, давно не виделись!</b>
+                <b>{message.From.FirstName}, рада снова Вас видеть!</b>
 
-                Напомню о себе. Я Summy‑Сова 🦉 — летаю по веткам чатов, собираю ключевые факты и вношу их в аккуратные свитки‑резюме 📜
+                Я Summy‑Сова 🦉 — летаю по веткам чатов, собираю ключевые факты и вношу их в аккуратные свитки‑резюме 📜
 
                 <b>Как я работаю?</b>
-                1️⃣ <b>Шаг 1:</b> Ты добавляешь интересующие тебя каналы
-                2️⃣ <b>Шаг 2:</b> Делаем быструю настройку для твоего удобства
-                3️⃣ <b>Шаг 3:</b> Воля, ты получаешь короткие и информативные сводки
+                1️⃣ Добавим ваш канал
+                2️⃣ Укажем время получения сводоксводки
                 """;
+
+            imagePath = "summy_time.jpg";
         }
         else
         {
@@ -45,11 +51,12 @@ public class StartCommandHandler(
 
                 Я Summy‑Сова 🦉 — летаю по веткам чатов, собираю ключевые факты и вношу их в аккуратные свитки‑резюме 📜
 
-                <b>Как я работаю?</b>
-                1️⃣ <b>Шаг 1:</b> Ты добавляешь интересующие тебя каналы
-                2️⃣ <b>Шаг 2:</b> Делаем быструю настройку для твоего удобства
-                3️⃣ <b>Шаг 3:</b> Воля, ты получаешь короткие и информативные сводки
+                <b>Настроим вашу сводку</b>
+                1️⃣ Добавим ваш канал
+                2️⃣ Укажем время получения сводок
                 """;
+
+            imagePath = "summy_start.png";
         }
 
        await userService.UpdateOrCreateUserByTelegramAsync(message.From.Id, message);
@@ -60,9 +67,10 @@ public class StartCommandHandler(
              new[] { InlineKeyboardButton.WithCallbackData("✖️ Стоп", "stop") },
         });
 
-        await using var stream = imageService.GetImageStream("summy_start.png");
-        await botClient.SendPhoto(
-            chatId: message.Chat.Id,
+        await using var stream = imageService.GetImageStream(imagePath);
+        await botClient.SendOrEditMessageAsync(
+            cache,
+            upd,
             photo: new InputFileStream(stream),
             caption: text,
             parseMode: ParseMode.Html,

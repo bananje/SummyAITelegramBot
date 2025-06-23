@@ -7,21 +7,23 @@ using Telegram.Bot.Types.ReplyMarkups;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using SummyAITelegramBot.Core.Domain.Enums;
-using Microsoft.EntityFrameworkCore;
+using FluentResults;
+using SummyAITelegramBot.Core.Bot.Extensions;
 
 namespace SummyAITelegramBot.Core.Bot.Features.Channel.Handlers;
 
 public class NotificationDaySettingHandler(
     ITelegramBotClient bot,
-    IUnitOfWork unitOfWork) : IStepOnChainHandler
+    IUnitOfWork unitOfWork,
+    IMemoryCache cache) : IStepOnChainHandler<UserSettings>
 {
-    public IStepOnChainHandler? Next { get; set; }
+    public IStepOnChainHandler<UserSettings>? Next { get; set; }
 
-    private static readonly string CallbackPrefix = "add_channel_chain_day:";
+    private static readonly string CallbackPrefix = "add:channel_chain_day_";
 
     public async Task ShowStepAsync(Update update)
     {
-        var chatId = update.Message.Chat.Id;
+        var chatId = update.CallbackQuery.Message.Chat.Id;
         var text =
              "<b>1️⃣ Начнём с первой настройки</b>\n\n" +
              "⏱️ В какое время ты хочешь получать сводки?\n\n";
@@ -48,11 +50,12 @@ public class NotificationDaySettingHandler(
                 .ToList());
         }
 
-        await bot.SendMessage(chatId, text: text, parseMode: ParseMode.Html,
+        await bot.SendOrEditMessageAsync(cache, update, 
+            text, parseMode: ParseMode.Html,
             replyMarkup: new InlineKeyboardMarkup(keyboard));
     }
 
-    public async Task HandleAsync(Update update)
+    public async Task<Result> HandleAsync(Update update, UserSettings userSettings)
     {
         var query = update.CallbackQuery;
 
@@ -61,34 +64,29 @@ public class NotificationDaySettingHandler(
             var settingsRepostitory = unitOfWork.Repository<Guid, UserSettings>();
             var channelRepository = unitOfWork.Repository<long, Domain.Models.Channel>();
             var dayOfWeek = query.Data.Substring(CallbackPrefix.Length);
-            long? channelId = await channelRepository.GetIQueryable()
-                .OrderByDescending(u => u.AddedDate)
-                .Select(u => u.Id)
-                .FirstOrDefaultAsync();
-
-            if (channelId is null) { throw new Exception("Ошибка. Канал не найден"); }
-
-            var settings = new UserSettings
-            {
-                ChannelId = channelId.Value,
-                UserId = update.Message.From.Id
-            };
 
             if (Enum.TryParse<RussianDayOfWeek>(dayOfWeek, out var day))
             {
-                settings.Day = (int)day;
+                userSettings.Day = (int)day;
             }
             else
             {
-                await bot.SendMessage(query.Message.Chat.Id, "❌ Ошибка: неверный день.");
-                return;
-            }
+                //await bot.SendOrEditMessageAsync(
+                //    cache,
+                //    update,
+                //    "❌ Ошибка: неверный день.",
+                //    query.Message.Chat.Id,
+                //    query.Message.Id, "❌ Ошибка: неверный день.");
 
-            await settingsRepostitory.CreateOrUpdateAsync(settings);
-            await unitOfWork.CommitAsync();
+                return Result.Fail("");
+            }
 
             if (Next != null)
                 await Next.ShowStepAsync(update);
+
+            return Result.Ok();
         }
+
+        return Result.Fail("");
     }
 }

@@ -11,8 +11,7 @@ namespace SummyAITelegramBot.Core.Bot.CommandHandlers;
 /// </summary>
 [CommandHandler("settings")]
 public class SettingsCommandHandler(
-    ILogger<SettingsCommandHandler> logger,
-    SettingsChainOfStepsHandler handler
+    ILogger<SettingsCommandHandler> logger
     ) : ICommandHandler
 {
     public async Task HandleAsync(Message message)

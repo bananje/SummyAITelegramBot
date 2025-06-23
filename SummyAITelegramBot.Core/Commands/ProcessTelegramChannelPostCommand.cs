@@ -18,8 +18,8 @@ public class ProcessTelegramChannelPostCommandHandler(
         var action = request.Action;
 
         var aiHandler = aiFactory.Create(AiModel.DeepSeek);
-        var handledByAiText = await aiHandler.SummarizeAsync(request.Post.Text);
-
+        //var handledByAiText = await aiHandler.SummarizeAsync(request.Post.Text);
+        var handledByAiText = "dsfdgdfgdfgdfgdfgdfdgfdgdfgdfg";
         request.Post.Text = handledByAiText;
 
         var post = action is EntityAction.Create ? await postService.AddPostAsync(request.Post) 

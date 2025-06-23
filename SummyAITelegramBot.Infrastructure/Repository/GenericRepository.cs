@@ -45,7 +45,7 @@ public class GenericRepository<TId, TEntity> : IRepository<TId, TEntity> where T
         else
         {
             _context.Entry(entry).CurrentValues.SetValues(entity);
-            _context.Update(entry);
+            
             return entry;
         }
     }
@@ -54,5 +54,15 @@ public class GenericRepository<TId, TEntity> : IRepository<TId, TEntity> where T
     {
         var entry = await _context.AddAsync(entity);
         return entry.Entity;
+    }
+
+    public async Task RemoveAsync(TId id, CancellationToken cancellationToken = default)
+    {
+        var entry = await _context.Set<TEntity>().FindAsync(new object[] { id }, cancellationToken);
+        
+        if (entry is not null)
+        {
+            _context.Remove(entry);
+        }
     }
 }

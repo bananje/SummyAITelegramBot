@@ -1,6 +1,10 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using FluentResults;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using SummyAITelegramBot.Core.Abstractions;
 using SummyAITelegramBot.Core.Bot.Abstractions;
+using SummyAITelegramBot.Core.Bot.Extensions;
+using SummyAITelegramBot.Core.Domain.Models;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
@@ -9,15 +13,70 @@ namespace SummyAITelegramBot.Core.Bot.Features.Channel.Handlers;
 
 public class SettingsConfigurationHandler(
     ITelegramBotClient bot,
-    IUnitOfWork unitOfWork) : IStepOnChainHandler
+    IUnitOfWork unitOfWork,
+    IStaticImageService imageService,
+    IMemoryCache cache,
+    string chainCachePrefix) : IStepOnChainHandler<UserSettings>
 {
-    public IStepOnChainHandler? Next { get; set; }
+    public IStepOnChainHandler<UserSettings>? Next { get; set; }
 
-    private static readonly string CallbackPrefix = "add_channel_chain_settings_config:";
+    private static readonly string CallbackPrefix = "add:channel_chain_settings_config:";    
 
-    public Task HandleAsync(Update update)
+    public async Task<Result> HandleAsync(Update update, UserSettings userSettings)
     {
-        throw new NotImplementedException();
+        var query = update.CallbackQuery;
+
+        if (query.Data != null && query.Data.StartsWith(CallbackPrefix))
+        {
+            var settingsRepostitory = unitOfWork.Repository<Guid, UserSettings>();
+            var channelRepository = unitOfWork.Repository<long, Domain.Models.Channel>();
+            var settingCommand = query.Data.Substring(CallbackPrefix.Length);
+
+            if (settingCommand == "global_apply")
+            {
+                var globalUserSettings = await settingsRepostitory.GetIQueryable()
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(u => u.User.Id == query.From.Id);
+
+                userSettings.Day = globalUserSettings.Day;
+
+                if (globalUserSettings.InstantlyTimeNotification) 
+                {
+                    userSettings.InstantlyTimeNotification = globalUserSettings.InstantlyTimeNotification;
+                }
+
+                if (globalUserSettings.NotificationTime is not null)
+                {
+                    userSettings.NotificationTime = globalUserSettings.NotificationTime;
+                }
+
+
+                cache.Remove(chainCachePrefix);
+
+                // TO:DO продумать куда будет переход
+                return Result.Fail("");
+            }
+
+            if (settingCommand == "global_clear")
+            {
+                await ResetGlobalUserSettings(settingsRepostitory);
+
+                await ShowStepAsync(update);
+            }
+
+            if (settingCommand == "global_create")
+            {
+                await ResetGlobalUserSettings(settingsRepostitory);
+                userSettings.IsGlobal = true;
+            }
+
+            if (Next != null)
+                await Next.ShowStepAsync(update);
+
+            return Result.Ok();
+        }
+
+        return Result.Fail("");
     }
 
     public async Task ShowStepAsync(Update update)
@@ -44,8 +103,8 @@ public class SettingsConfigurationHandler(
         {
             keyboard.Add(new List<InlineKeyboardButton>
             {
-                InlineKeyboardButton.WithCallbackData("Применить глобальные настройки", $"{CallbackPrefix}global_apply"),
-                InlineKeyboardButton.WithCallbackData("Сбросить глобальные настройки", $"{CallbackPrefix}global_clear")
+                InlineKeyboardButton.WithCallbackData("Установить как у всех каналов", $"{CallbackPrefix}global_apply"),
+                InlineKeyboardButton.WithCallbackData("Сбросить общие настройки", $"{CallbackPrefix}global_clear")
             });
         }
         else
@@ -56,10 +115,34 @@ public class SettingsConfigurationHandler(
             });
         }
 
-        await bot.SendMessage(
-                update.Message.Chat.Id,
-                "Отправьте ссылку на канал:",
-                replyMarkup: new ForceReplyMarkup { Selective = true }
+        var text = $"""
+                2️⃣ <b>Указываем время получения сводок</b>
+
+                {update.Message.From.FirstName}, пожалуйста, добавьте удобное
+                для Вас день и время получения сводок🦉
+                """;
+
+        await using var stream = imageService.GetImageStream("add_channel.jpg");
+
+        await bot.SendOrEditMessageAsync(
+                cache,
+                update,
+                photo: stream,
+                caption: text,
+                parseMode: Telegram.Bot.Types.Enums.ParseMode.Html,
+                replyMarkup: new InlineKeyboardMarkup(keyboard)
         );
     }
+
+    private async Task ResetGlobalUserSettings(IRepository<Guid, UserSettings> repository)
+    {
+        var globalUserSetting = await repository.GetIQueryable()
+                    .FirstOrDefaultAsync(u => u.IsGlobal);
+
+        if (globalUserSetting is not null)
+        {
+            await repository.RemoveAsync(globalUserSetting.Id);
+            await unitOfWork.CommitAsync();
+        }
+    } 
 }

@@ -11,6 +11,14 @@ public interface IRepository<TId, TEntity>
     Task<TEntity?> GetByIdAsync(TId id, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Удалить сущность
+    /// </summary>
+    /// <param name="id"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    Task RemoveAsync(TId id, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Обновляет сущность.
     /// </summary>
     /// <param name="entity">Сущность для добавления</param>

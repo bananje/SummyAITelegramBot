@@ -12,8 +12,8 @@ using SummyAITelegramBot.Infrastructure.Context;
 namespace SummyAITelegramBot.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250611125310_Initial")]
-    partial class Initial
+    [Migration("20250619113703_InitialMigration")]
+    partial class InitialMigration
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -47,6 +47,9 @@ namespace SummyAITelegramBot.Infrastructure.Migrations
                         .HasColumnType("bigint");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("AddedDate")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<bool>("HasStopFactor")
                         .HasColumnType("boolean");
@@ -100,10 +103,13 @@ namespace SummyAITelegramBot.Infrastructure.Migrations
                     b.Property<string>("FirstName")
                         .HasColumnType("text");
 
-                    b.Property<bool>("IsBot")
+                    b.Property<bool>("HasSubscriptionPremium")
                         .HasColumnType("boolean");
 
                     b.Property<bool?>("HasTgPremium")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsBot")
                         .HasColumnType("boolean");
 
                     b.Property<string>("LanguageCode")
@@ -146,6 +152,9 @@ namespace SummyAITelegramBot.Infrastructure.Migrations
 
                     b.Property<long>("ChannelId")
                         .HasColumnType("bigint");
+
+                    b.Property<int>("Day")
+                        .HasColumnType("integer");
 
                     b.Property<bool>("InstantlyTimeNotification")
                         .HasColumnType("boolean");

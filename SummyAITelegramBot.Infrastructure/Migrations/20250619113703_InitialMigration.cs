@@ -7,7 +7,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace SummyAITelegramBot.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class Initial : Migration
+    public partial class InitialMigration : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -20,7 +20,8 @@ namespace SummyAITelegramBot.Infrastructure.Migrations
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     Link = table.Column<string>(type: "text", nullable: false),
                     IsPrivate = table.Column<bool>(type: "boolean", nullable: false),
-                    HasStopFactor = table.Column<bool>(type: "boolean", nullable: false)
+                    HasStopFactor = table.Column<bool>(type: "boolean", nullable: false),
+                    AddedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -33,13 +34,14 @@ namespace SummyAITelegramBot.Infrastructure.Migrations
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    HasSubscriptionPremium = table.Column<bool>(type: "boolean", nullable: false),
                     ChatId = table.Column<long>(type: "bigint", nullable: false),
                     TelegramId = table.Column<long>(type: "bigint", nullable: false),
                     FirstName = table.Column<string>(type: "text", nullable: true),
                     LastName = table.Column<string>(type: "text", nullable: true),
                     Username = table.Column<string>(type: "text", nullable: true),
                     LanguageCode = table.Column<string>(type: "text", nullable: true),
-                    IsPremium = table.Column<bool>(type: "boolean", nullable: true),
+                    HasTgPremium = table.Column<bool>(type: "boolean", nullable: true),
                     PhoneNumber = table.Column<string>(type: "text", nullable: true),
                     Latitude = table.Column<float>(type: "real", nullable: true),
                     Longitude = table.Column<float>(type: "real", nullable: true),
@@ -102,14 +104,15 @@ namespace SummyAITelegramBot.Infrastructure.Migrations
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     ChannelId = table.Column<long>(type: "bigint", nullable: false),
+                    Day = table.Column<int>(type: "integer", nullable: false),
+                    NotificationTime = table.Column<TimeOnly>(type: "time without time zone", nullable: true),
+                    InstantlyTimeNotification = table.Column<bool>(type: "boolean", nullable: false),
                     AiModel = table.Column<int>(type: "integer", nullable: false),
                     IsGlobal = table.Column<bool>(type: "boolean", nullable: false),
                     MediaEnabled = table.Column<bool>(type: "boolean", nullable: false),
                     UserId = table.Column<long>(type: "bigint", nullable: false),
                     Language = table.Column<int>(type: "integer", nullable: false),
-                    IsBlockingSimilarPostsInChannels = table.Column<bool>(type: "boolean", nullable: false),
-                    NotificationTime = table.Column<TimeOnly>(type: "time without time zone", nullable: true),
-                    InstantlyNotification = table.Column<bool>(type: "boolean", nullable: false)
+                    IsBlockingSimilarPostsInChannels = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {

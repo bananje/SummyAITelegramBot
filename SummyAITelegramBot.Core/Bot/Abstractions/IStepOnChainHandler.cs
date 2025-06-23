@@ -1,4 +1,5 @@
-﻿using Telegram.Bot.Types;
+﻿using FluentResults;
+using Telegram.Bot.Types;
 
 namespace SummyAITelegramBot.Core.Bot.Abstractions;
 
@@ -16,7 +17,7 @@ public interface IStepOnChainHandler<Entity> where Entity : class
     /// <summary>
     /// Обрабатывает выбор пользователя и при необходимости передаёт управление следующему шагу.
     /// </summary>
-    Task HandleAsync(Update update, Entity? entity = null);
+    Task<Result> HandleAsync(Update update, Entity? entity = null);
 
     /// <summary>
     /// Следующий обработчик в цепочке (шаг).

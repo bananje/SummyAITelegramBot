@@ -3,11 +3,15 @@ using SummyAITelegramBot.Core.Abstractions;
 using SummyAITelegramBot.Core.Bot.Features.Channel.Abstractions;
 using SummyAITelegramBot.Core.Bot.Features.Channel.DTO;
 using SummyAITelegramBot.Core.Domain.Models;
+using SummyAITelegramBot.Infrastructure.Context;
+using static Dapper.SqlMapper;
+using System.Threading;
 using ChannelEn = SummyAITelegramBot.Core.Domain.Models.Channel;
+
 
 namespace SummyAITelegramBot.Core.Bot.Features.Channel.Services;
 
-public class PostService(IUnitOfWork unitOfWork) : IPostService
+public class PostService(IUnitOfWork unitOfWork, AppDbContext context) : IPostService
 {
     public async Task<ChannelPost> AddPostAsync(ChannelPostDto postDto)
     {
@@ -19,16 +23,27 @@ public class PostService(IUnitOfWork unitOfWork) : IPostService
 
         var post = new ChannelPost
         {
+            Id = postDto.Id,
             ChannelId = postDto.ChannelId,
             CreatedDate = postDto.CreatedAt,
             Text = postDto.Text
         };
 
-        var result = await postsRepository.AddAsync(post);
+        var entry = await context.Set<ChannelPost>().
+            FirstOrDefaultAsync(p => p.ChannelId == postDto.ChannelId && p.Id == postDto.Id);
+
+        if (entry is null)
+        {
+            entry = (await context.AddAsync(post)).Entity;
+        }
+        else
+        {
+            context.Entry(entry).CurrentValues.SetValues(post);
+        }
 
         await unitOfWork.CommitAsync();
 
-        return result;
+        return entry;
     }
 
     public async Task<ChannelPost> UpdatePostAsync(ChannelPostDto postDto)

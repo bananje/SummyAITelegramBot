@@ -57,6 +57,7 @@ public class TelegramChannelAdapter(Client _client) : ITelegramChannelAdapter
         return await ResolveAndJoinPublicChannelAsync(identifier);
     }
 
+
     private static string? ExtractIdentifier(string input)
     {
         if (input?.Trim() is null) { return null; }
@@ -134,7 +135,13 @@ public class TelegramChannelAdapter(Client _client) : ITelegramChannelAdapter
                 .OfType<TL.Channel>()
                 .FirstOrDefault();
         }
+        else if (invite is TL.ChatInvitePeek peek)
+        {
+            Console.WriteLine("❗ Это TL.ChatInvitePeek — нельзя вступить, но можно посмотреть.");
+            Console.WriteLine($"Канал: {peek.chat.Title}");
+            return null;
+        }
 
-        return null;
+            return null;
     }
 }

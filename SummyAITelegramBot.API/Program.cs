@@ -23,6 +23,7 @@ using Hangfire;
 using Hangfire.PostgreSql;
 using SummyAITelegramBot.Core.Commands;
 using SummyAITelegramBot.Core.Bot.Factories;
+using SummyAITelegramBot.Infrastructure.Jobs;
 
 var builder = WebApplication.CreateBuilder(args);
 {
@@ -78,7 +79,6 @@ var builder = WebApplication.CreateBuilder(args);
     builder.Services.AddScoped<IStaticImageService, StaticImageService>();
 
     builder.Services.AddScoped<IUserService, UserService>();
-    builder.Services.AddScoped<SettingsChainOfStepsHandler>();
     builder.Services.AddScoped(typeof(IRepository<,>), typeof(GenericRepository<,>));
     builder.Services.AddDbContext<AppDbContext>(options =>
         options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -102,7 +102,7 @@ var builder = WebApplication.CreateBuilder(args);
     builder.Services.AddHttpClient("DeepSeek", client =>
     {
         client.BaseAddress = new Uri("https://openrouter.ai/api/v1/");
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "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");
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "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");
 
         client.DefaultRequestHeaders.Add("X-Title", "SummyAI");
     });
@@ -122,7 +122,7 @@ var builder = WebApplication.CreateBuilder(args);
     {
         cfg.RegisterServicesFromAssembly(typeof(ProcessTelegramChannelPostCommandHandler).Assembly);
     });
-    //builder.Services.AddHostedService<ChannelMonitoringService>();
+    builder.Services.AddHostedService<ChannelMonitoringService>();
 
     builder.Services.AddSingleton<WTelegram.Client>(provider =>
     {      

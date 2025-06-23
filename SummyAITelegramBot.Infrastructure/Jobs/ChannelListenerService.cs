@@ -12,68 +12,47 @@ namespace SummyAITelegramBot.Infrastructure.Jobs;
 
 public class ChannelMonitoringService : BackgroundService
 {
-    private readonly Client _client;
-    private int _pts, _qts, _unreadCount;
+    private readonly WTelegram.Client _client;
     private readonly IServiceProvider _serviceProvider;
 
+    private int _pts;
+    private int _qts;
     private DateTime _date;
+    private DateTime _startTimeUtc;
 
-    public ChannelMonitoringService(Client client, IServiceProvider serviceProvider)
+    public ChannelMonitoringService(WTelegram.Client client, IServiceProvider serviceProvider)
     {
-        _serviceProvider = serviceProvider;
         _client = client;
-        _client.OnUpdates += OnUpdates;
+        _serviceProvider = serviceProvider;
+
+        // Подписка на входящие обновления
+        _client.OnUpdates += OnUpdate;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        // 1. Авторизуемся (если требуется)
+        // 1. Авторизация (если нужно)
         await _client.LoginUserIfNeeded();
 
-        // 2. Берём текущее состояние (pts, qts, date, unread)
+        // 2. Получаем актуальное состояние Telegram (но НЕ загружаем backlog)
         var state = await _client.Updates_GetState();
         _pts = state.pts;
         _qts = state.qts;
-        _unreadCount = state.unread_count;
+        _date = state.date;
 
-        // 3. Заходим в цикл long-polling
-        while (!stoppingToken.IsCancellationRequested)
-        {
-            try
-            {
-                // Запрашиваем все новые апдейты (включая UpdateNewChannelMessage)
-                await _client.Updates_GetDifference(
-                    pts: _pts,
-                    qts: _qts,
-                    date: _date
-                );
-                // WTelegram.Client обновит внутренние pts/qts/date и вызовет OnUpdates
-            }
-            catch (Grpc.Core.RpcException ex) when (ex.StatusCode == StatusCode.Internal)
-            {
-                // Иногда бывает INTERNAL — сбросим состояние
-                state = await _client.Updates_GetState();
-                _pts = state.pts;
-                _qts = state.qts;
-                _date = state.date;
-            }
-            catch (Exception ex)
-            {
-                Console.Error.WriteLine($"[ChannelMonitoringService] Poll error: {ex.Message}");
-            }
+        // 3. Устанавливаем точку отсечения — только live-сообщения после этой даты
+        _startTimeUtc = DateTime.UtcNow;
 
-            await Task.Delay(1000, stoppingToken);
-        }
+        // 4. Просто держим сервис живым
+        await Task.Delay(Timeout.Infinite, stoppingToken);
     }
 
-    private async Task OnUpdates(UpdatesBase updates)
+    private async Task OnUpdate(UpdatesBase updates)
     {
-        // 1) Short — одно Update
         if (updates is UpdateShort us)
         {
             await Handle(us.update);
         }
-        // 2) Batch — множество Update
         else if (updates is Updates u)
         {
             var tasks = u.updates.Select(Handle);
@@ -83,19 +62,22 @@ public class ChannelMonitoringService : BackgroundService
 
     private async Task Handle(Update upd)
     {
-        // Новое сообщение в канале
-        if (upd is UpdateNewChannelMessage cnm
-            && cnm.message is Message msg
-            && msg.peer_id is PeerChannel peer)
+        switch (upd)
         {
-            await Process(msg.id, msg.message, peer.channel_id, msg.Date, EntityAction.Create);
-        }
-        // Редактирование сообщения в канале
-        else if (upd is UpdateEditChannelMessage enm
-                 && enm.message is Message edited
-                 && edited.peer_id is PeerChannel peerEdit)
-        {
-            await Process(edited.id, edited.message, peerEdit.channel_id, edited.edit_date, EntityAction.Update);
+            case UpdateNewChannelMessage cnm when cnm.message is Message msg && msg.peer_id is PeerChannel peer:
+                if (msg.Date.ToUniversalTime() < _startTimeUtc)
+                    return;
+
+                await Process(msg.id, msg.message, peer.channel_id, msg.Date, EntityAction.Create);
+                break;
+
+            case UpdateEditChannelMessage enm when enm.message is Message edited && edited.peer_id is PeerChannel peerEdit:
+                var editDate = edited.edit_date.ToUniversalTime();
+                if (editDate < _startTimeUtc)
+                    return;
+
+                await Process(edited.id, edited.message, peerEdit.channel_id, edited.edit_date, EntityAction.Update);
+                break;
         }
     }
 
@@ -107,17 +89,15 @@ public class ChannelMonitoringService : BackgroundService
             Text = text,
             ChannelId = channelId,
             CreatedAt = action == EntityAction.Create
-                          ? DateTime.SpecifyKind(timeUtc, DateTimeKind.Utc)
-                          : default,
+                ? DateTime.SpecifyKind(timeUtc, DateTimeKind.Utc)
+                : default,
             UpdatedAt = action == EntityAction.Update
-                          ? DateTime.SpecifyKind(timeUtc, DateTimeKind.Utc)
-                          : null
+                ? DateTime.SpecifyKind(timeUtc, DateTimeKind.Utc)
+                : null
         };
 
-        using (var scope = _serviceProvider.CreateScope())
-        {
-            var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
-            await mediator.Send(new ProcessTelegramChannelPostCommand(dto, action));
-        }
+        using var scope = _serviceProvider.CreateScope();
+        var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
+        await mediator.Send(new ProcessTelegramChannelPostCommand(dto, action));
     }
 }
