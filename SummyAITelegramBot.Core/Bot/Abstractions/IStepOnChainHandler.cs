@@ -14,6 +14,8 @@ public interface IStepOnChainHandler<Entity> where Entity : class
     /// </summary>
     Task ShowStepAsync(Update update);
 
+    static bool  fd;
+
     /// <summary>
     /// Обрабатывает выбор пользователя и при необходимости передаёт управление следующему шагу.
     /// </summary>

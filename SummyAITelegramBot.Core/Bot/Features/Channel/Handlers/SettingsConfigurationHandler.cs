@@ -3,34 +3,35 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using SummyAITelegramBot.Core.Abstractions;
 using SummyAITelegramBot.Core.Bot.Abstractions;
-using SummyAITelegramBot.Core.Bot.Extensions;
+using SummyAITelegramBot.Core.Bot.Attributes;
+using SummyAITelegramBot.Core.Bot.Utils;
 using SummyAITelegramBot.Core.Domain.Models;
 using Telegram.Bot;
 using Telegram.Bot.Types;
-using Telegram.Bot.Types.ReplyMarkups;
+using TL;
 
 namespace SummyAITelegramBot.Core.Bot.Features.Channel.Handlers;
 
+[TelegramUpdateHandler(Consts.ChannelSettingsCallbackPrefix)]
 public class SettingsConfigurationHandler(
     ITelegramBotClient bot,
     IUnitOfWork unitOfWork,
     IStaticImageService imageService,
     IMemoryCache cache,
-    string chainCachePrefix) : IStepOnChainHandler<UserSettings>
+    string chainCachePrefix) : ITelegramUpdateHandler
 {
-    public IStepOnChainHandler<UserSettings>? Next { get; set; }
-
-    private static readonly string CallbackPrefix = "add:channel_chain_settings_config:";    
-
-    public async Task<Result> HandleAsync(Update update, UserSettings userSettings)
+    
+    public async Task HandleAsync(Update update)
     {
         var query = update.CallbackQuery;
 
-        if (query.Data != null && query.Data.StartsWith(CallbackPrefix))
+        if (query.Data != null && query.Data.StartsWith(Consts.ChannelSettingsCallbackPrefix))
         {
             var settingsRepostitory = unitOfWork.Repository<Guid, UserSettings>();
             var channelRepository = unitOfWork.Repository<long, Domain.Models.Channel>();
-            var settingCommand = query.Data.Substring(CallbackPrefix.Length);
+            var settingCommand = query.Data.Substring(Consts.ChannelSettingsCallbackPrefix.Length);
+
+            cache.TryGetValue<UserSettings>($"{Consts.UserSettingsCachePrefix}{query.From.Id}", out var userSettings);
 
             if (settingCommand == "global_apply")
             {
@@ -50,11 +51,7 @@ public class SettingsConfigurationHandler(
                     userSettings.NotificationTime = globalUserSettings.NotificationTime;
                 }
 
-
-                cache.Remove(chainCachePrefix);
-
-                // TO:DO продумать куда будет переход
-                return Result.Fail("");
+                cache.Set($"{SettingsCachePrefix}{chatId}", userSettings, TimeSpan.FromMinutes(5));
             }
 
             if (settingCommand == "global_clear")
@@ -77,61 +74,6 @@ public class SettingsConfigurationHandler(
         }
 
         return Result.Fail("");
-    }
-
-    public async Task ShowStepAsync(Update update)
-    {
-        var userId = update.Message.From!.Id;
-        var userRepository = unitOfWork.Repository<long, Domain.Models.User>();
-
-        var user = await userRepository.GetIQueryable()
-            .Include(u => u.UserSettings)
-            .FirstOrDefaultAsync(u => u.Id == userId) 
-                ?? throw new Exception($"Ошибка при настройке пользователя {userId}.");
-
-        var keyboard = new List<List<InlineKeyboardButton>>
-        {
-            new List<InlineKeyboardButton>
-            {
-                InlineKeyboardButton.WithCallbackData("Персонально настроить", $"{CallbackPrefix}personal")
-            }
-        };
-
-        var hasGlobalSetting = user.UserSettings.Any(u => u.IsGlobal);
-
-        if (hasGlobalSetting)
-        {
-            keyboard.Add(new List<InlineKeyboardButton>
-            {
-                InlineKeyboardButton.WithCallbackData("Установить как у всех каналов", $"{CallbackPrefix}global_apply"),
-                InlineKeyboardButton.WithCallbackData("Сбросить общие настройки", $"{CallbackPrefix}global_clear")
-            });
-        }
-        else
-        {
-            keyboard.Add(new List<InlineKeyboardButton>
-            {
-                InlineKeyboardButton.WithCallbackData("Настроить сразу для всех каналов", $"{CallbackPrefix}global_create"),
-            });
-        }
-
-        var text = $"""
-                2️⃣ <b>Указываем время получения сводок</b>
-
-                {update.Message.From.FirstName}, пожалуйста, добавьте удобное
-                для Вас день и время получения сводок🦉
-                """;
-
-        await using var stream = imageService.GetImageStream("add_channel.jpg");
-
-        await bot.SendOrEditMessageAsync(
-                cache,
-                update,
-                photo: stream,
-                caption: text,
-                parseMode: Telegram.Bot.Types.Enums.ParseMode.Html,
-                replyMarkup: new InlineKeyboardMarkup(keyboard)
-        );
     }
 
     private async Task ResetGlobalUserSettings(IRepository<Guid, UserSettings> repository)

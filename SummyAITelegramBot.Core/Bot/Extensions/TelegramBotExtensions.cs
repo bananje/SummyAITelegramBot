@@ -1,156 +1,144 @@
 ﻿using Microsoft.Extensions.Caching.Memory;
 using Telegram.Bot.Exceptions;
-using Telegram.Bot.Types.ReplyMarkups;
 using Telegram.Bot;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types;
+using Telegram.Bot.Types.ReplyMarkups;
 
 namespace SummyAITelegramBot.Core.Bot.Extensions;
 
 public static class TelegramBotClientExtensions
 {
-    private static int _prevMsgId = 0;
+    private static readonly MemoryCache _cache = new(new MemoryCacheOptions());
+    private static readonly TimeSpan _cacheLifetime = TimeSpan.FromMinutes(30);
 
-    public static async Task SendOrEditMessageAsync(
-    this ITelegramBotClient botClient,
-    IMemoryCache cache,
-    Update update,
-    string? botText = null,
-    InputFile? photo = null,
-    string? caption = null,
-    ParseMode? parseMode = null,
-    InlineKeyboardMarkup? replyMarkup = null,
-    bool deleteUserMessage = true,
-    TimeSpan? cacheTtl = null)
+    public static async Task ReactivelySendAsync(
+        this ITelegramBotClient bot,
+        long chatId,
+        string text,
+        Message? userMessage = null,
+        InlineKeyboardMarkup? replyMarkup = null,
+        CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(botClient);
-        ArgumentNullException.ThrowIfNull(update);
-        ArgumentNullException.ThrowIfNull(cache);
-
-        var userMessage = update.Message ?? update.CallbackQuery?.Message;
-
-        if (userMessage == null)
-            throw new InvalidOperationException("Update must contain a user message.");
-
-        if (userMessage.From == null)
-            throw new InvalidOperationException("User message must have sender info.");
-
-        var chatId = userMessage.Chat.Id;
-        var userId = userMessage.From.Id;
-        string cacheKey = $"EditMessage:{chatId}:{userId}";
-        cacheTtl ??= TimeSpan.FromMinutes(10);
-
-        // 1. Удаляем сообщение пользователя
-        if (deleteUserMessage && update.Message is not null)
+        // Удаляем сообщение пользователя
+        if (userMessage is { From.IsBot: false })
         {
             try
             {
-                await botClient.DeleteMessage(chatId, userMessage.MessageId);
+                await bot.DeleteMessage(chatId, userMessage.MessageId, cancellationToken);
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[Bot] Не удалось удалить сообщение пользователя: {ex.Message}");
-            }
+            catch { /* игнор */ }
         }
 
-        // 2. Попытка редактировать предыдущее сообщение бота
-        if (cache.TryGetValue<int>(cacheKey, out var oldBotMessageId))
+        if (_cache.TryGetValue(chatId, out CachedBotMessage? previous))
         {
-            try
+            if (previous?.Type == MessageType.Text)
             {
-                Message sendedMessage = default;
-                if (photo is not null)
-                {
-                    var media = new InputMediaPhoto(photo)
-                    {
-                        Caption = caption,
-                        ParseMode = parseMode.Value
-                    };
-
-                    sendedMessage = await botClient.EditMessageMedia(
-                        chatId: chatId,
-                        messageId: oldBotMessageId,
-                        media: media,
-                        replyMarkup: replyMarkup
-                    );
-                }
-                else if (!string.IsNullOrWhiteSpace(botText))
-                {
-                    sendedMessage = await botClient.EditMessageText(
-                        chatId: chatId,
-                        messageId: oldBotMessageId,
-                        text: botText,
-                        parseMode: parseMode ?? ParseMode.None,
-                        replyMarkup: replyMarkup
-                    );
-                }
-                else
-                {
-                    throw new ArgumentException("Either botText or photo must be provided.");
-                }
-
-                cache.Remove(cacheKey);
-                cache.Set(cacheKey, sendedMessage.Id, cacheTtl.Value);
-
-                // успешно отредактировано — выходим
-                return;
-            }
-            catch (ApiRequestException ex) when (ex.Message.Contains("message is not modified"))
-            {
-                if (userMessage.Text != "/start")
-                {
-                    return;
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[Bot] Не удалось отредактировать сообщение: {ex.Message}");
-
-                // попытка удалить старое сообщение
                 try
                 {
-                    await botClient.DeleteMessage(chatId, oldBotMessageId);
+                    await bot.EditMessageText(
+                        chatId,
+                        previous.MessageId,
+                        text,
+                        replyMarkup: replyMarkup,
+                        parseMode: ParseMode.Html,
+                        cancellationToken: cancellationToken);
+
+                    return; // успешно отредактировали — выходим
                 }
-                catch (Exception deleteEx)
+                catch (ApiRequestException ex) when (ex.ErrorCode is 400 or 403)
                 {
-                    Console.WriteLine($"[Bot] Не удалось удалить старое сообщение: {deleteEx.Message}");
+                    // не получилось — продолжим удалять и пересылать
                 }
-
-                cache.Remove(cacheKey);
             }
+
+            try
+            {
+                await bot.DeleteMessage(chatId, previous.MessageId, cancellationToken);
+            }
+            catch { /* игнор */ }
         }
-        else
+
+        var sent = await bot.SendMessage(
+            chatId,
+            text,
+            replyMarkup: replyMarkup,
+            parseMode: ParseMode.Html,
+            cancellationToken: cancellationToken);
+
+        _cache.Set(chatId, new CachedBotMessage
         {
-            if (_prevMsgId != 0) { await botClient.DeleteMessage(chatId, _prevMsgId); }
+            MessageId = sent.MessageId,
+            Type = MessageType.Text
+        }, _cacheLifetime);
+    }
 
-            // 3. Отправка нового сообщения
-            Message sentMessage;
-            if (photo is not null)
+    public static async Task ReactivelySendPhotoAsync(
+        this ITelegramBotClient bot,
+        long chatId,
+        InputFileStream photo,
+        string? caption = null,
+        Message? userMessage = null,
+        InlineKeyboardMarkup? replyMarkup = null,
+        CancellationToken cancellationToken = default)
+    {
+        // Удаляем сообщение пользователя
+        if (userMessage is { From.IsBot: false })
+        {
+            try
             {
-                sentMessage = await botClient.SendPhoto(
-                    chatId: chatId,
-                    photo: photo,
-                    caption: caption,
-                    parseMode: parseMode ?? ParseMode.None,
-                    replyMarkup: replyMarkup
-                );
+                await bot.DeleteMessage(chatId, userMessage.MessageId, cancellationToken);
             }
-            else if (!string.IsNullOrWhiteSpace(botText))
-            {
-                sentMessage = await botClient.SendMessage(
-                    chatId: chatId,
-                    text: botText,
-                    parseMode: parseMode ?? ParseMode.None,
-                    replyMarkup: replyMarkup
-                );
-            }
-            else
-            {
-                throw new ArgumentException("Either botText or photo must be provided.");
-            }
-
-            cache.Set(cacheKey, sentMessage.MessageId, cacheTtl.Value);
-            _prevMsgId = sentMessage.MessageId;
+            catch { /* игнор */ }
         }
+
+        if (_cache.TryGetValue(chatId, out CachedBotMessage? previous))
+        {
+            if (previous?.Type == MessageType.Photo)
+            {
+                try
+                {
+                    await bot.EditMessageCaption(
+                        chatId,
+                        previous.MessageId,
+                        caption,
+                        replyMarkup: replyMarkup,
+                        parseMode: ParseMode.Html,
+                        cancellationToken: cancellationToken);
+
+                    return;
+                }
+                catch (ApiRequestException ex) when (ex.ErrorCode is 400 or 403)
+                {
+                    // не удалось редактировать
+                }
+            }
+
+            try
+            {
+                await bot.DeleteMessage(chatId, previous.MessageId, cancellationToken);
+            }
+            catch { /* игнор */ }
+        }
+
+        var sent = await bot.SendPhoto(
+            chatId,
+            photo,
+            caption: caption,
+            parseMode: ParseMode.Html,
+            replyMarkup: replyMarkup,
+            cancellationToken: cancellationToken);
+
+        _cache.Set(chatId, new CachedBotMessage
+        {
+            MessageId = sent.MessageId,
+            Type = MessageType.Photo
+        }, _cacheLifetime);
+    }
+
+    private class CachedBotMessage
+    {
+        public int MessageId { get; set; }
+        public MessageType Type { get; set; }
     }
 }

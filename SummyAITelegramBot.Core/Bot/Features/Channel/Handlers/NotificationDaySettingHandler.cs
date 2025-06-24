@@ -50,9 +50,9 @@ public class NotificationDaySettingHandler(
                 .ToList());
         }
 
-        await bot.SendOrEditMessageAsync(cache, update, 
-            text, parseMode: ParseMode.Html,
-            replyMarkup: new InlineKeyboardMarkup(keyboard));
+        //await bot.SendOrEditMessageAsync(cache, update, 
+        //    text, parseMode: ParseMode.Html,
+        //    replyMarkup: new InlineKeyboardMarkup(keyboard));
     }
 
     public async Task<Result> HandleAsync(Update update, UserSettings userSettings)

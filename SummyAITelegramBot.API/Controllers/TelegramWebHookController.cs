@@ -22,7 +22,7 @@ public class TelegramWebHookController(
         return Ok(DateTime.UtcNow);
     }
 
-    [HttpPost("webhookj")]
+    [HttpPost("webhook4")]
     public IActionResult HandleUpdate1([FromBody] Update update)
     { return Ok(); }
 
@@ -46,9 +46,7 @@ public class TelegramWebHookController(
             {
                 HttpContext.Items["chatId"] = update.Message.Chat.Id;
 
-                await telegramUpdateFactory.DispatchAsync(update, commandPrefix
-                    .TrimStart('/')
-                    .ToLowerInvariant());
+                await telegramUpdateFactory.DispatchAsync(update, commandPrefix);
                 return Ok();
             }
 

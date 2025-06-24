@@ -24,4 +24,9 @@
     <PackageReference Include="WTelegramClient" Version="4.3.5" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Bot\CommandHandlers\" />
+    <Folder Include="Bot\Features\Channel\Commands\" />
+  </ItemGroup>
+
 </Project>

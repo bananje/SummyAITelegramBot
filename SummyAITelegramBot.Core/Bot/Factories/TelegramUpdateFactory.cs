@@ -65,12 +65,12 @@ public class TelegramUpdateFactory : ITelegramUpdateFactory
                 """;
             await using var failStream = _imageService.GetImageStream("add_channel.jpg");
 
-            await _bot.SendOrEditMessageAsync(
-                _cache,
-                query,
-                photo: new InputFileStream(failStream),
-                caption: text,
-                parseMode: ParseMode.Html);
+            //await _bot.SendOrEditMessageAsync(
+            //    _cache,
+            //    query,
+            //    photo: new InputFileStream(failStream),
+            //    caption: text,
+            //    parseMode: ParseMode.Html);
         }
     }
 }

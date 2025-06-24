@@ -14,7 +14,7 @@ using Telegram.Bot.Types.ReplyMarkups;
 
 namespace SummyAITelegramBot.Core.Bot.Features.Channel;
 
-[TelegramUpdateHandler("add", true)]
+[TelegramUpdateHandler("add")]
 public class ChannelSettingChainOfStepsHandler(
     ITelegramBotClient bot,
     ITelegramChannelAdapter telegramChannelAdapter,
@@ -90,12 +90,12 @@ public class ChannelSettingChainOfStepsHandler(
 
                 var keyboard = new InlineKeyboardMarkup(new[]
                 {
-            InlineKeyboardButton.WithCallbackData("Канал📣", "/add"),
-        });
+                    InlineKeyboardButton.WithCallbackData("Канал📣", "/add"),
+                });
 
-                await bot.SendOrEditMessageAsync(
-                    cache, update, photo: stream, replyMarkup: keyboard, caption: text,
-                    parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
+                //await bot.SendOrEditMessageAsync(
+                //    cache, update, photo: stream, replyMarkup: keyboard, caption: text,
+                //    parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
 
                 cache.Remove(chainKey);
                 cache.Remove(userSettingsCacheKey);

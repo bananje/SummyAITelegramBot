@@ -7,26 +7,24 @@ using Telegram.Bot.Types.ReplyMarkups;
 using Microsoft.EntityFrameworkCore;
 using SummyAITelegramBot.Core.Bot.Features.Channel.Abstractions;
 using UserEn = SummyAITelegramBot.Core.Domain.Models.User;
-using SummyAITelegramBot.Core.Domain.Models;
-using FluentResults;
-using SummyAITelegramBot.Core.Enums;
-using SummyAITelegramBot.Core.Extensions;
 using Microsoft.Extensions.Caching.Memory;
+using SummyAITelegramBot.Core.Bot.Attributes;
 using SummyAITelegramBot.Core.Bot.Extensions;
-using Telegram.Bot.Types.Enums;
+using SummyAITelegramBot.Core.Bot.Utils;
+using SummyAITelegramBot.Core.Domain.Models;
 
 namespace SummyAITelegramBot.Core.Bot.Features.Channel.Handlers;
 
+[TelegramUpdateHandler("/channellink")]
 public class AddChannelHandler(
     IUnitOfWork unitOfWork,
     ITelegramBotClient bot,
+    ITelegramUpdateFactory telegramUpdateFactory,
     IStaticImageService imageService,
     ITelegramChannelAdapter channelAdapter,
-    IMemoryCache cache) : IStepOnChainHandler<UserSettings>
+    IMemoryCache cache) : ITelegramUpdateHandler
 {
-    public IStepOnChainHandler<UserSettings>? Next { get; set; }
-
-    public async Task<Result> HandleAsync(Update update, UserSettings userSettings)
+    public async Task HandleAsync(Update update)
     {
         var channelLink = update.Message.Text;
         var userId = update.Message.From.Id;
@@ -66,14 +64,11 @@ public class AddChannelHandler(
                 """;
 
             await using var failStream = imageService.GetImageStream("add_channel.jpg");
-            await bot.SendOrEditMessageAsync(
-                cache,
-                update,
+            await bot.ReactivelySendPhotoAsync(
+                chatId: update.Message.Chat.Id,
                 photo: new InputFileStream(failStream),
                 caption: text,
-                parseMode: ParseMode.Html);
-
-            return Result.Ok().WithReason(new Error($"Канал не найден. Внутренее исключение: {ex.Message}"));
+                userMessage: update.Message);
         }
 
         var user = await userRepository.GetIQueryable()
@@ -85,69 +80,35 @@ public class AddChannelHandler(
         {
             var keyboard = new InlineKeyboardMarkup(new[]
             {
-                InlineKeyboardButton.WithCallbackData("Добавить канал", "/add"),
+                InlineKeyboardButton.WithCallbackData("➕ Канал", "/add"),
                 InlineKeyboardButton.WithCallbackData("Завершить добавление", "/settings")
             });
 
-            await bot.SendOrEditMessageAsync(
-                cache,
-                update,
-                "Этот канал уже добавлен в вашу коллекцию:",
-                replyMarkup: keyboard);
+            var text = $"""
+                ✅ <b>Канал уже добавлен в библиотеку</b>
 
-            return Result.Fail(new ErrorWithCode(ErrorCode.ChannelAlreadyExists));
+                *Нажмите ➕ Канал, чтобы добавить новый канал
+                """;
+
+            await using var failStream = imageService.GetImageStream("add_channel.jpg");
+            await bot.ReactivelySendPhotoAsync(
+                update.Message.Chat.Id,
+                photo: new InputFileStream(failStream),
+                caption: text,
+                userMessage: update.Message);
         }
 
         user.AddChannel(channel);
-
         await unitOfWork.CommitAsync();
 
-        userSettings.ChannelId = channel.Id;
+        var userSettings = new UserSettings
+        { 
+            UserId = userId,
+            ChannelId = channel.Id
+        };
 
-        if (Next != null)
-            await Next.ShowStepAsync(update);
+        cache.Set($"{Consts.UserSettingsCachePrefix}{userId}", userSettings, TimeSpan.FromMinutes(5));
 
-        return Result.Ok();
-    }
-
-    public async Task ShowStepAsync(Update update)
-    {
-        var message = update.Message is null ? update.CallbackQuery.Message
-            : update.Message;
-
-        var userId = message.Chat.Id;
-        var userRepository = unitOfWork.Repository<long, Domain.Models.User>();
-
-        var user = await userRepository.GetByIdAsync(userId)
-            ?? throw new Exception($"Ошибка при настройке пользователя {userId}.");
-        string text = "";
-
-        if (!user.HasSubscriptionPremium && user.Channels.Count > 5) 
-        {
-            await bot.SendOrEditMessageAsync(
-                cache,
-                update,
-                "Оплатите премиум"
-            );
-        }
-        
-        text = $"""
-                1️⃣ <b>Добавьте Ваши каналы</b>
-
-                Просто отправьте ссылку на канал
-                (Пример: https://t.me/UseSummyAI)
-
-                <b> *В базовом тарифе можно добавить до 5 каналов 📢</b>
-                """;
-
-        await using var stream = imageService.GetImageStream("add_channel.jpg");
-
-        await bot.SendOrEditMessageAsync(
-             cache,
-            update,
-            photo: new InputFileStream(stream),
-            caption: text,
-            parseMode: ParseMode.Html
-        );
+        await telegramUpdateFactory.DispatchAsync(update, "/showchannelsettings");
     }
 }

@@ -7,15 +7,14 @@ using SummyAITelegramBot.Core.Bot.Extensions;
 using SummyAITelegramBot.Core.Bot.Features.User.Abstractions;
 using Telegram.Bot;
 using Telegram.Bot.Types;
-using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
 
-namespace SummyAITelegramBot.Core.Bot.CommandHandlers;
+namespace SummyAITelegramBot.Core.Bot.Handlers;
 
 /// <summary>
 /// Обработчик команды /start
 /// </summary>
-[TelegramUpdateHandler("start", true)]
+[TelegramUpdateHandler("/start")]
 public class StartCommandHandler(
     ITelegramBotClient botClient, ILogger<StartCommandHandler> logger,
     IUserService userService,
@@ -32,7 +31,7 @@ public class StartCommandHandler(
 
         if (user?.LastInteractionAt is not null)
         {
-             text = $"""
+            text = $"""
                 <b>{message.From.FirstName}, рада снова Вас видеть!</b>
 
                 Я Summy‑Сова 🦉 — летаю по веткам чатов, собираю ключевые факты и вношу их в аккуратные свитки‑резюме 📜
@@ -59,7 +58,7 @@ public class StartCommandHandler(
             imagePath = "summy_start.png";
         }
 
-       await userService.UpdateOrCreateUserByTelegramAsync(message.From.Id, message);
+        await userService.UpdateOrCreateUserByTelegramAsync(message.From.Id, message);
 
         var keyboard = new InlineKeyboardMarkup(new[]
         {
@@ -68,12 +67,11 @@ public class StartCommandHandler(
         });
 
         await using var stream = imageService.GetImageStream(imagePath);
-        await botClient.SendOrEditMessageAsync(
-            cache,
-            upd,
+        await botClient.ReactivelySendPhotoAsync(
+            upd.Message.Chat.Id,
             photo: new InputFileStream(stream),
+            userMessage: upd.Message,
             caption: text,
-            parseMode: ParseMode.Html,
             replyMarkup: keyboard
         );
     }

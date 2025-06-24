@@ -40,6 +40,8 @@ public class TelegramSenderService(
             }
             else
             {
+                // убрать временно!!
+                await telegramBotClient.SendMessage(chatId: user.Id, text: "push" + post.Text);
                 var todayTarget = DateTime.UtcNow + userSettings.NotificationTime.Value.ToTimeSpan();
 
                 if (todayTarget <= DateTime.UtcNow)

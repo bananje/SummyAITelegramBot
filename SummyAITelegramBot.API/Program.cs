@@ -1,8 +1,6 @@
 using Microsoft.AspNetCore.HttpOverrides;
 using Serilog;
 using SummyAITelegramBot.Core.Bot.Abstractions;
-using SummyAITelegramBot.Core.Bot.CommandHandlers;
-using SummyAITelegramBot.Core.Bot.Features.Settings;
 using SummyAITelegramBot.Core.Abstractions;
 using SummyAITelegramBot.Infrastructure.Repository;
 using Telegram.Bot;
@@ -50,11 +48,6 @@ var builder = WebApplication.CreateBuilder(args);
 
     builder.Services.AddSingleton<ITelegramBotClient>(new TelegramBotClient(builder.Configuration["Token"]));
 
-    builder.Services.Scan(scan => scan
-        .FromAssemblyOf<ICommandHandler>()
-        .AddClasses(classes => classes.AssignableTo<ICommandHandler>())
-        .AsSelfWithInterfaces()
-        .WithScopedLifetime());
 
     builder.Services.Scan(scan => scan
        .FromAssemblyOf<ITelegramUpdateHandler>()
@@ -64,17 +57,7 @@ var builder = WebApplication.CreateBuilder(args);
        .AsSelfWithInterfaces()
        .WithScopedLifetime());
 
-    builder.Services.Scan(scan => scan
-       .FromAssemblyOf<IReplyHandler>()
-       .AddClasses(classes => classes
-           .AssignableTo<IReplyHandler>()
-           .Where(t => !t.IsAbstract))
-       .AsSelfWithInterfaces()
-       .WithScopedLifetime());
-
-    builder.Services.AddScoped<ICommandFactory, CommandFactory>();
     builder.Services.AddScoped<ITelegramUpdateFactory, TelegramUpdateFactory>();
-    builder.Services.AddScoped<IReplyFactory, ReplyFactory>();
 
     builder.Services.AddScoped<IStaticImageService, StaticImageService>();
 
@@ -102,11 +85,10 @@ var builder = WebApplication.CreateBuilder(args);
     builder.Services.AddHttpClient("DeepSeek", client =>
     {
         client.BaseAddress = new Uri("https://openrouter.ai/api/v1/");
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "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");
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "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");
 
         client.DefaultRequestHeaders.Add("X-Title", "SummyAI");
     });
-    builder.Services.AddScoped<ICommandHandler, SettingsCommandHandler>();
 
     // Добавляем Hangfire + PostgreSQL
     builder.Services.AddHangfire(config =>

@@ -23,4 +23,8 @@
     <ProjectReference Include="..\SummyAITelegramBot.Infrastructure\SummyAITelegramBot.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="logs\" />
+  </ItemGroup>
+
 </Project>
