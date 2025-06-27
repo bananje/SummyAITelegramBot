@@ -9,10 +9,10 @@ using SummyAITelegramBot.Infrastructure.Context;
 
 #nullable disable
 
-namespace SummyAITelegramBot.Infrastructure.Migrations
+namespace SummyAITelegramBot.Core.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250619113703_InitialMigration")]
+    [Migration("20250627073621_InitialMigration")]
     partial class InitialMigration
     {
         /// <inheritdoc />
@@ -20,7 +20,7 @@ namespace SummyAITelegramBot.Infrastructure.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.5")
+                .HasAnnotation("ProductVersion", "9.0.6")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -86,6 +86,39 @@ namespace SummyAITelegramBot.Infrastructure.Migrations
                     b.ToTable("ChannelPosts");
                 });
 
+            modelBuilder.Entity("SummyAITelegramBot.Core.Domain.Models.ChannelUserSettings", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool?>("InstantlyTimeNotification")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("Language")
+                        .HasColumnType("integer");
+
+                    b.Property<bool?>("MediaEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<TimeOnly?>("NotificationTime")
+                        .HasColumnType("time without time zone");
+
+                    b.Property<string>("TimeZoneId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("UserSettings");
+                });
+
             modelBuilder.Entity("SummyAITelegramBot.Core.Domain.Models.User", b =>
                 {
                     b.Property<long>("Id")
@@ -141,51 +174,6 @@ namespace SummyAITelegramBot.Infrastructure.Migrations
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("SummyAITelegramBot.Core.Domain.Models.UserSettings", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("AiModel")
-                        .HasColumnType("integer");
-
-                    b.Property<long>("ChannelId")
-                        .HasColumnType("bigint");
-
-                    b.Property<int>("Day")
-                        .HasColumnType("integer");
-
-                    b.Property<bool>("InstantlyTimeNotification")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsBlockingSimilarPostsInChannels")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsGlobal")
-                        .HasColumnType("boolean");
-
-                    b.Property<int>("Language")
-                        .HasColumnType("integer");
-
-                    b.Property<bool>("MediaEnabled")
-                        .HasColumnType("boolean");
-
-                    b.Property<TimeOnly?>("NotificationTime")
-                        .HasColumnType("time without time zone");
-
-                    b.Property<long>("UserId")
-                        .HasColumnType("bigint");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ChannelId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("UserSettings");
-                });
-
             modelBuilder.Entity("ChannelUser", b =>
                 {
                     b.HasOne("SummyAITelegramBot.Core.Domain.Models.Channel", null)
@@ -212,21 +200,13 @@ namespace SummyAITelegramBot.Infrastructure.Migrations
                     b.Navigation("Channel");
                 });
 
-            modelBuilder.Entity("SummyAITelegramBot.Core.Domain.Models.UserSettings", b =>
+            modelBuilder.Entity("SummyAITelegramBot.Core.Domain.Models.ChannelUserSettings", b =>
                 {
-                    b.HasOne("SummyAITelegramBot.Core.Domain.Models.Channel", "Channel")
-                        .WithMany()
-                        .HasForeignKey("ChannelId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("SummyAITelegramBot.Core.Domain.Models.User", "User")
-                        .WithMany("UserSettings")
-                        .HasForeignKey("UserId")
+                        .WithOne("ChannelUserSettings")
+                        .HasForeignKey("SummyAITelegramBot.Core.Domain.Models.ChannelUserSettings", "UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("Channel");
 
                     b.Navigation("User");
                 });
@@ -238,7 +218,8 @@ namespace SummyAITelegramBot.Infrastructure.Migrations
 
             modelBuilder.Entity("SummyAITelegramBot.Core.Domain.Models.User", b =>
                 {
-                    b.Navigation("UserSettings");
+                    b.Navigation("ChannelUserSettings")
+                        .IsRequired();
                 });
 #pragma warning restore 612, 618
         }

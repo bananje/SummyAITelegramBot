@@ -12,8 +12,6 @@ namespace SummyAITelegramBot.API.Controllers;
 [ApiController]
 public class TelegramWebHookController(
     ITelegramUpdateFactory telegramUpdateFactory,
-    Serilog.ILogger logger,
-    IMemoryCache cache,
     ITelegramBotClient botClient) : ControllerBase
 {
     [HttpGet]
@@ -28,7 +26,7 @@ public class TelegramWebHookController(
 
     [HttpPost("webhook")]
     public async Task<IActionResult> HandleUpdate([FromBody] Update update)
-   {
+    {
         try
         {
             // обработка ответа с ссылкой на канал (частный случай)
@@ -36,7 +34,7 @@ public class TelegramWebHookController(
                 && TelegramHelper.IsTelegramChannelLink(update.Message?.Text))
             {
                 HttpContext.Items["chatId"] = update.Message.Chat.Id;
-                await telegramUpdateFactory.DispatchAsync(update, "add");
+                await telegramUpdateFactory.DispatchAsync(update, "/add");
                 return Ok();
             }
 
@@ -57,29 +55,31 @@ public class TelegramWebHookController(
                 {
                     var callBack = update.CallbackQuery!;
 
-                    var callBackPrefix = callBack.Message.Text is null 
+                    var callBackPrefix = callBack.Message.Text is null
                         ? update.CallbackQuery.Data
                         : callBack.Message.Text;
 
                     await telegramUpdateFactory.DispatchAsync(
                         update,
-                        callBackPrefix
-                            .TrimStart('/')
-                            .ToLowerInvariant());
+                        callBackPrefix);
                     return Ok();
                 }
 
+                var data = update.CallbackQuery.Data;
+                var prefix = data != null && data.Contains(':')
+                ? data.Substring(0, data.IndexOf(':') + 1)  // берём до двоеточия включительно
+                : data;
+
                 await telegramUpdateFactory.DispatchAsync(
                     update,
-                    update.CallbackQuery.Data?.Split(':').FirstOrDefault());
+                    prefix);
 
                 return Ok();
             }
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
-            logger.Error(ex, ex.Message);
-        }       
+        }
 
         return Ok();
     }

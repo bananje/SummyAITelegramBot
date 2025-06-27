@@ -4,7 +4,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace SummyAITelegramBot.Infrastructure.Migrations
+namespace SummyAITelegramBot.Core.Migrations
 {
     /// <inheritdoc />
     public partial class InitialMigration : Migration
@@ -103,26 +103,16 @@ namespace SummyAITelegramBot.Infrastructure.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    ChannelId = table.Column<long>(type: "bigint", nullable: false),
-                    Day = table.Column<int>(type: "integer", nullable: false),
                     NotificationTime = table.Column<TimeOnly>(type: "time without time zone", nullable: true),
-                    InstantlyTimeNotification = table.Column<bool>(type: "boolean", nullable: false),
-                    AiModel = table.Column<int>(type: "integer", nullable: false),
-                    IsGlobal = table.Column<bool>(type: "boolean", nullable: false),
-                    MediaEnabled = table.Column<bool>(type: "boolean", nullable: false),
+                    TimeZoneId = table.Column<string>(type: "text", nullable: false),
+                    InstantlyTimeNotification = table.Column<bool>(type: "boolean", nullable: true),
+                    MediaEnabled = table.Column<bool>(type: "boolean", nullable: true),
                     UserId = table.Column<long>(type: "bigint", nullable: false),
-                    Language = table.Column<int>(type: "integer", nullable: false),
-                    IsBlockingSimilarPostsInChannels = table.Column<bool>(type: "boolean", nullable: false)
+                    Language = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_UserSettings", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_UserSettings_Channels_ChannelId",
-                        column: x => x.ChannelId,
-                        principalTable: "Channels",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_UserSettings_Users_UserId",
                         column: x => x.UserId,
@@ -137,14 +127,10 @@ namespace SummyAITelegramBot.Infrastructure.Migrations
                 column: "UsersId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_UserSettings_ChannelId",
-                table: "UserSettings",
-                column: "ChannelId");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_UserSettings_UserId",
                 table: "UserSettings",
-                column: "UserId");
+                column: "UserId",
+                unique: true);
         }
 
         /// <inheritdoc />

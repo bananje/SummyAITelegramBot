@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Serilog;
 using SummyAITelegramBot.Core.Bot.Abstractions;
 using SummyAITelegramBot.Core.Abstractions;
-using SummyAITelegramBot.Infrastructure.Repository;
 using Telegram.Bot;
 using Microsoft.EntityFrameworkCore;
 using SummyAITelegramBot.Infrastructure.Context;
@@ -20,8 +19,8 @@ using SummyAITelegramBot.Infrastructure.Persistence;
 using Hangfire;
 using Hangfire.PostgreSql;
 using SummyAITelegramBot.Core.Commands;
-using SummyAITelegramBot.Core.Bot.Factories;
-using SummyAITelegramBot.Infrastructure.Jobs;
+using SummyAITelegramBot.Core.Utils.Repository;
+using SummyAITelegramBot.API.Jobs;
 
 var builder = WebApplication.CreateBuilder(args);
 {
@@ -36,7 +35,7 @@ var builder = WebApplication.CreateBuilder(args);
     .CreateLogger();
 
     builder.Host.UseSerilog();
-
+    builder.Logging.SetMinimumLevel(LogLevel.Debug);
     builder.Services.AddSingleton(_ => Log.Logger);
     builder.Services.AddControllers();
     builder.Services.AddEndpointsApiExplorer();
@@ -96,7 +95,7 @@ var builder = WebApplication.CreateBuilder(args);
         config.SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
               .UseSimpleAssemblyNameTypeSerializer()
               .UseRecommendedSerializerSettings()
-              .UsePostgreSqlStorage(builder.Configuration.GetConnectionString("HangfireDb"));
+              .UsePostgreSqlStorage(builder.Configuration.GetConnectionString("DefaultConnection"));
     });
 
     builder.Services.AddHangfireServer(); // ƒобавл€ет фоновые процессы
@@ -113,7 +112,11 @@ var builder = WebApplication.CreateBuilder(args);
 
     builder.Services.AddScoped<IPostService, PostService>();
     builder.Services.AddScoped<ITelegramSenderService, TelegramSenderService>();
-
+    builder.Services.Configure<ForwardedHeadersOptions>(options =>
+    {
+        options.ForwardedHeaders =
+            ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    });
 }
 static string Config(string what)
 {
@@ -128,6 +131,8 @@ static string Config(string what)
 
 var app = builder.Build();
 {
+    app.UseHttpsRedirection();
+
     using (var scope = app.Services.CreateScope())
     {
         try
@@ -148,14 +153,13 @@ var app = builder.Build();
         app.UseSwaggerUI();
     }
 
+    app.UseForwardedHeaders();
     app.UseForwardedHeaders(new ForwardedHeadersOptions
     {
         ForwardedHeaders = ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedFor,
         KnownNetworks = { }, // разрешить все сети
         KnownProxies = { }   // разрешить всех прокси
     });
-
-    app.UseHttpsRedirection();
 
     app.UseAuthorization();
     app.UseSerilogRequestLogging();

@@ -7,6 +7,7 @@ using System.Text.Json.Serialization;
 using Telegram.Bot.Types.ReplyMarkups;
 using Telegram.Bot;
 using Microsoft.Extensions.Caching.Memory;
+using SummyAITelegramBot.Core.Bot.Extensions;
 
 namespace SummyAITelegramBot.API.ExceptionHandlers;
 
@@ -41,9 +42,9 @@ public class GlobalExceptionHandler(
                 new KeyboardButton[] { "/start" },
             });
 
-        var chatId = context.Items["chatId"] as string;
+        var chatId = context.Items["chatId"] as long?;
 
-        await bot.SendMessage(chatId, "Кажется, я сломалась! Перезапусти меня через /start.", replyMarkup: keyboard);
+        await bot.ReactivelySendAsync(chatId.Value, "Кажется, я сломалась! Перезапусти меня через /start.");
 
         return true;
     }

@@ -16,43 +16,42 @@ public class TelegramSenderService(
     {
         var users = await userRepository.GetIQueryable()
             .Where(u => u.Channels.Any(c => c.Id == post.ChannelId))
-            .Include(u => u.UserSettings)
+            .Include(u => u.ChannelUserSettings)
             .ToListAsync();
 
         foreach (var user in users)
         {
-            var userSettings = new UserSettings();
-            var globalSettings = user.UserSettings.FirstOrDefault(u => u.IsGlobal);
+            var userSettings = user.ChannelUserSettings;
 
-            if (globalSettings is not null)
-            {
-                userSettings = globalSettings;
-            }
-            else
-            {
-                userSettings = user.UserSettings.FirstOrDefault(u => u.ChannelId == post.ChannelId);
-            }
-
-
-            if (userSettings.InstantlyTimeNotification)
+            if (userSettings.InstantlyTimeNotification.GetValueOrDefault())
             {
                 await telegramBotClient.SendMessage(chatId: user.Id, text: "push" + post.Text);
             }
             else
             {
-                // убрать временно!!
-                await telegramBotClient.SendMessage(chatId: user.Id, text: "push" + post.Text);
-                var todayTarget = DateTime.UtcNow + userSettings.NotificationTime.Value.ToTimeSpan();
-
-                if (todayTarget <= DateTime.UtcNow)
+                if (string.IsNullOrEmpty(userSettings.TimeZoneId))
                 {
-                    // Если уже прошло — можно либо пропустить, либо перенести на завтра
-                    todayTarget = todayTarget.AddDays(1);
+                    // Если тайм-зона не указана — можно обработать по дефолту (например, UTC)
+                    userSettings.TimeZoneId = "UTC";
                 }
 
+                var tz = TimeZoneInfo.FindSystemTimeZoneById(userSettings.TimeZoneId);
+
+                var nowUserTz = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, tz);
+                var todayTargetUserTz = nowUserTz.Date + userSettings.NotificationTime.Value.ToTimeSpan();
+
+                if (todayTargetUserTz <= nowUserTz)
+                {
+                    // если время уже прошло в часовом поясе пользователя — на следующий день
+                    todayTargetUserTz = todayTargetUserTz.AddDays(1);
+                }
+
+                // переведём обратно в UTC для Hangfire
+                var todayTargetUtc = TimeZoneInfo.ConvertTimeToUtc(todayTargetUserTz, tz);
+
                 BackgroundJob.Schedule<TelegramSenderService>(
-                    job => job.NotifyUserAsync(post.Text, user.ChatId),
-                    delay: todayTarget - DateTime.UtcNow);
+                    job => job.NotifyUserAsync(post.Text, user.Id),
+                    todayTargetUtc - DateTime.UtcNow);
             }
         }
     }

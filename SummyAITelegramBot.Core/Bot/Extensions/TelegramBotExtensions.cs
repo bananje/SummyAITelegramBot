@@ -83,7 +83,7 @@ public static class TelegramBotClientExtensions
         CancellationToken cancellationToken = default)
     {
         // Удаляем сообщение пользователя
-        if (userMessage is { From.IsBot: false })
+        if (userMessage is not null && userMessage is { From.IsBot: false })
         {
             try
             {

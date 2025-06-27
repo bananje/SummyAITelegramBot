@@ -5,7 +5,7 @@ namespace SummyAITelegramBot.Core.Domain.Models;
 
 public class User : Entity<long>
 {
-    public ICollection<UserSettings> UserSettings { get; set; } = []; // Настройки пользователя
+    public ChannelUserSettings ChannelUserSettings { get; set; }
 
     public ICollection<Channel> Channels { get; set; } = []; // Каналы, в которых состоит пользователь
 

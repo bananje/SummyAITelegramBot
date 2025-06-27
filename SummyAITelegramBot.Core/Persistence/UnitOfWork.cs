@@ -1,6 +1,6 @@
 ﻿using SummyAITelegramBot.Core.Abstractions;
+using SummyAITelegramBot.Core.Utils.Repository;
 using SummyAITelegramBot.Infrastructure.Context;
-using SummyAITelegramBot.Infrastructure.Repository;
 
 namespace SummyAITelegramBot.Infrastructure.Persistence;
 

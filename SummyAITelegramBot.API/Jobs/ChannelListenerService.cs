@@ -4,15 +4,14 @@ using TL;
 using SummyAITelegramBot.Core.Bot.Features.Channel.DTO;
 using SummyAITelegramBot.Core.Commands;
 using SummyAITelegramBot.Core.Domain.Enums;
-using Grpc.Core;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace SummyAITelegramBot.Infrastructure.Jobs;
+namespace SummyAITelegramBot.API.Jobs;
 
 public class ChannelMonitoringService : BackgroundService
 {
-    private readonly WTelegram.Client _client;
+    private readonly Client _client;
     private readonly IServiceProvider _serviceProvider;
 
     private int _pts;
@@ -20,7 +19,7 @@ public class ChannelMonitoringService : BackgroundService
     private DateTime _date;
     private DateTime _startTimeUtc;
 
-    public ChannelMonitoringService(WTelegram.Client client, IServiceProvider serviceProvider)
+    public ChannelMonitoringService(Client client, IServiceProvider serviceProvider)
     {
         _client = client;
         _serviceProvider = serviceProvider;

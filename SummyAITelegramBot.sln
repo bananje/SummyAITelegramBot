@@ -1,13 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.13.35605.110 d17.13
+VisualStudioVersion = 17.13.35605.110
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SummyAITelegramBot.API", "SummyAITelegramBot.API\SummyAITelegramBot.API.csproj", "{A98BAB78-5740-40B2-B757-DF22F23836E7}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SummyAITelegramBot.Core", "SummyAITelegramBot.Core\SummyAITelegramBot.Core.csproj", "{D0BAEAC5-5D78-4D45-8353-E1677CB5F360}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SummyAITelegramBot.Infrastructure", "SummyAITelegramBot.Infrastructure\SummyAITelegramBot.Infrastructure.csproj", "{82AEDADB-657F-4A85-966F-D4ED99F07E36}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -23,10 +21,6 @@ Global
 		{D0BAEAC5-5D78-4D45-8353-E1677CB5F360}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D0BAEAC5-5D78-4D45-8353-E1677CB5F360}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D0BAEAC5-5D78-4D45-8353-E1677CB5F360}.Release|Any CPU.Build.0 = Release|Any CPU
-		{82AEDADB-657F-4A85-966F-D4ED99F07E36}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{82AEDADB-657F-4A85-966F-D4ED99F07E36}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{82AEDADB-657F-4A85-966F-D4ED99F07E36}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{82AEDADB-657F-4A85-966F-D4ED99F07E36}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
