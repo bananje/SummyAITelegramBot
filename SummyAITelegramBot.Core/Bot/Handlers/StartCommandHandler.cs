@@ -20,6 +20,7 @@ public class StartCommandHandler(
     IUserService userService,
     IMemoryCache cache,
     IStaticImageService imageService,
+    ITelegramUpdateFactory telegramUpdateFactory,
     IRepository<long, Domain.Models.User> userRepository) : ITelegramUpdateHandler
 {
     public async Task HandleAsync(Update upd)
@@ -31,28 +32,21 @@ public class StartCommandHandler(
 
         if (user?.LastInteractionAt is not null)
         {
-            text = $"""
-                <b>{message.From.FirstName}, рада снова Вас видеть!</b>
-
-                Я Summy‑Сова 🦉 — летаю по веткам чатов, собираю ключевые факты и вношу их в аккуратные свитки‑резюме 📜
-
-                <b>Как я работаю?</b>
-                1️⃣ Добавим ваши каналы
-                2️⃣ Укажем время получения сводок
-                """;
-
-            imagePath = "summy_time.jpg";
+            await telegramUpdateFactory.DispatchAsync(upd, "/add");
+            return;
         }
         else
         {
             text = $"""
-                <b>{message.From.FirstName}, добро пожаловать!</b>
+                <b>👋{message.From.FirstName}, добро пожаловать!</b>
 
-                Я Summy‑Сова 🦉 — летаю по веткам чатов, собираю ключевые факты и вношу их в аккуратные свитки‑резюме 📜
+                Я Сова Summy летаю по веткам чатов, собираю ключевые факты и вношу их в аккуратные свитки‑резюме📜
 
-                <b>Настроим вашу сводку</b>
-                1️⃣ Добавим ваши каналы
-                2️⃣ Укажем время получения сводок
+                <b>Настроим Вашу первую сводку:</b>
+                1️⃣Добавим Ваши каналы
+                2️⃣Укажем время получения постов
+
+                (КНОПКА "💪Полетели дальше!")
                 """;
 
             imagePath = "summy_start.png";
@@ -63,7 +57,6 @@ public class StartCommandHandler(
         var keyboard = new InlineKeyboardMarkup(new[]
         {
              new[] { InlineKeyboardButton.WithCallbackData("🚀 Каналы", "/add") },
-             new[] { InlineKeyboardButton.WithCallbackData("✖️ Стоп", "/complete") },
         });
 
         await using var stream = imageService.GetImageStream(imagePath);

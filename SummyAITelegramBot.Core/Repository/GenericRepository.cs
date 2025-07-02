@@ -1,4 +1,5 @@
-﻿using SummyAITelegramBot.Core.Abstractions;
+﻿using Microsoft.EntityFrameworkCore;
+using SummyAITelegramBot.Core.Abstractions;
 using SummyAITelegramBot.Infrastructure.Context;
 
 namespace SummyAITelegramBot.Core.Utils.Repository;
@@ -63,6 +64,18 @@ public class GenericRepository<TId, TEntity> : IRepository<TId, TEntity> where T
         if (entry is not null)
         {
             _context.Remove(entry);
+        }
+    }
+
+    public async Task RemoveRangeAsync(IEnumerable<TId> ids, CancellationToken cancellationToken = default)
+    {
+        var entities = await _context.Set<TEntity>()
+            .Where(e => ids.Contains(e.Id))
+            .ToListAsync(cancellationToken);
+
+        if (entities.Any())
+        {
+            _context.RemoveRange(entities);
         }
     }
 }

@@ -19,6 +19,13 @@ public interface IRepository<TId, TEntity>
     Task RemoveAsync(TId id, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Удалить сущности
+    /// </summary>
+    /// <param name="ids">IDs сущностей</param>
+    /// <returns></returns>
+    Task RemoveRangeAsync(IEnumerable<TId> ids, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Обновляет сущность.
     /// </summary>
     /// <param name="entity">Сущность для добавления</param>

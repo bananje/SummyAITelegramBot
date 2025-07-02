@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using SummyAITelegramBot.Infrastructure.Context;
@@ -11,9 +12,11 @@ using SummyAITelegramBot.Infrastructure.Context;
 namespace SummyAITelegramBot.Core.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250702114959_InitialMigration")]
+    partial class InitialMigration
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -143,7 +146,7 @@ namespace SummyAITelegramBot.Core.Migrations
                     b.HasIndex("ChannelPostChannelId", "ChannelPostId")
                         .IsUnique();
 
-                    b.ToTable("DelayedUserPosts");
+                    b.ToTable("DelayedUserPost");
                 });
 
             modelBuilder.Entity("SummyAITelegramBot.Core.Domain.Models.Subscription", b =>
@@ -172,7 +175,7 @@ namespace SummyAITelegramBot.Core.Migrations
                     b.HasIndex("UserId")
                         .IsUnique();
 
-                    b.ToTable("Subscriptions");
+                    b.ToTable("Subscription");
                 });
 
             modelBuilder.Entity("SummyAITelegramBot.Core.Domain.Models.User", b =>
@@ -270,7 +273,7 @@ namespace SummyAITelegramBot.Core.Migrations
             modelBuilder.Entity("SummyAITelegramBot.Core.Domain.Models.DelayedUserPost", b =>
                 {
                     b.HasOne("SummyAITelegramBot.Core.Domain.Models.User", "User")
-                        .WithMany("DelayedUserPosts")
+                        .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -312,8 +315,6 @@ namespace SummyAITelegramBot.Core.Migrations
                 {
                     b.Navigation("ChannelUserSettings")
                         .IsRequired();
-
-                    b.Navigation("DelayedUserPosts");
 
                     b.Navigation("Subscription")
                         .IsRequired();

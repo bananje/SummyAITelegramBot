@@ -84,7 +84,7 @@ var builder = WebApplication.CreateBuilder(args);
     builder.Services.AddHttpClient("DeepSeek", client =>
     {
         client.BaseAddress = new Uri("https://openrouter.ai/api/v1/");
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "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");
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "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");
 
         client.DefaultRequestHeaders.Add("X-Title", "SummyAI");
     });
@@ -103,7 +103,7 @@ var builder = WebApplication.CreateBuilder(args);
     {
         cfg.RegisterServicesFromAssembly(typeof(ProcessTelegramChannelPostCommandHandler).Assembly);
     });
-    builder.Services.AddHostedService<ChannelMonitoringService>();
+    //builder.Services.AddHostedService<ChannelMonitoringService>();
 
     builder.Services.AddSingleton<WTelegram.Client>(provider =>
     {      

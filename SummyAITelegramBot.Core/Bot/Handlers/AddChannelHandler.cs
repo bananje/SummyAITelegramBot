@@ -10,7 +10,6 @@ using UserEn = SummyAITelegramBot.Core.Domain.Models.User;
 using Microsoft.Extensions.Caching.Memory;
 using SummyAITelegramBot.Core.Bot.Attributes;
 using SummyAITelegramBot.Core.Bot.Extensions;
-using SummyAITelegramBot.Core.Bot.Utils;
 using SummyAITelegramBot.Core.Domain.Models;
 
 namespace SummyAITelegramBot.Core.Bot.Handlers;
@@ -19,6 +18,7 @@ namespace SummyAITelegramBot.Core.Bot.Handlers;
 public class AddChannelHandler(
     ITelegramBotClient bot,
     IStaticImageService imageService,
+    ITelegramUpdateFactory telegramUpdateFactory,
     ITelegramChannelAdapter channelAdapter,
     IMemoryCache cache) : ITelegramUpdateHandler
 {
@@ -31,10 +31,11 @@ public class AddChannelHandler(
     public AddChannelHandler(
         ITelegramBotClient bot,
         IStaticImageService imageService,
+        ITelegramUpdateFactory telegramUpdateFactory,
         ITelegramChannelAdapter channelAdapter,
         IMemoryCache cache,
         IUnitOfWork unitOfWork)
-        : this(bot, imageService, channelAdapter, cache)
+        : this(bot, imageService, telegramUpdateFactory, channelAdapter, cache)
     {
         _unitOfWork = unitOfWork;
         _userSettingsRepository = unitOfWork.Repository<Guid, ChannelUserSettings>();
@@ -44,17 +45,30 @@ public class AddChannelHandler(
 
     public async Task HandleAsync(Update update)
     {
-        if (update?.Message?.Text == "/add" 
-            || update?.CallbackQuery?.Data == "/add")
+        var commands = new List<string>() { "/add", "/start" };
+
+        if (commands.Contains(update?.Message?.Text)
+            || commands.Contains(update?.CallbackQuery?.Data))
         {
             await SendWelcomeText(update);
             return;
         }
 
-        var channelLink = update.Message.Text;
-        var userId = update.Message.From.Id;
-        var userRepository = _unitOfWork.Repository<long, UserEn>();
 
+        var userId = update.Message.From.Id;
+
+        var user = await _userRepository.GetIQueryable()
+            .Include(u => u.Channels)
+            .FirstOrDefaultAsync(user => user.Id == userId)
+                ?? throw new Exception($"Ошибка при настройке пользователя {userId}.");
+
+        if (user.Channels.Count == 5 && !user.HasSubscriptionPremium)
+        {
+            await telegramUpdateFactory.DispatchAsync(update, "/showsubscription");
+            return;
+        }
+
+        var channelLink = update.Message.Text;
         channelsCountBeforeAdding = await _channelRepository.GetIQueryable().CountAsync();
 
         var channel = new ChannelEn();
@@ -88,12 +102,7 @@ public class AddChannelHandler(
 
             await SendAddedChannelEventMessageAsync(update, text);
             return;
-        }
-
-        var user = await userRepository.GetIQueryable()
-            .Include(u => u.Channels)
-            .FirstOrDefaultAsync(user => user.Id == userId)
-                ?? throw new Exception($"Ошибка при настройке пользователя {userId}.");
+        }    
 
         if (user.Channels.Any(u => u.Id == channelInfo.id))
         {
@@ -106,7 +115,7 @@ public class AddChannelHandler(
         }
 
         user.AddChannel(channel);
-        await _unitOfWork.CommitAsync();
+        await _unitOfWork.CommitAsync(); 
 
         var completeHeader = $"""
                 ✅ <b>Канал успешно добавлен</b>
@@ -118,28 +127,29 @@ public class AddChannelHandler(
     private async Task SendAddedChannelEventMessageAsync(Update update, string caption)
     {
         var chatId = update.Message.Chat.Id;
-        string btnCommand = "/showchannelsettings";
 
-        
-        var currentChannels = await _channelRepository.GetIQueryable()
-            .Where(u => u.user)
-            .Select(u => u.Link)
-            .ToListAsync();
+        var userChannels = await _userRepository.GetIQueryable()
+            .Where(u => u.Id == chatId)
+            .Include(u => u.Channels)
+            .Select(u => u.Channels)
+            .FirstOrDefaultAsync();
 
-        if (currentChannels.Count > channelsCountBeforeAdding) { btnCommand = "/showchannelsettings"; }
-        else { btnCommand = "/complete"; }
+        var buttons = new List<InlineKeyboardButton>();
 
-       var keyboard = new InlineKeyboardMarkup(new[]
-       {
-           new[] { InlineKeyboardButton.WithCallbackData("Завершить добавление➡️", $"{btnCommand}") }
-       });
+        buttons.Add(InlineKeyboardButton.WithCallbackData("Завершить добавление➡️", "/showchannelsettings"));
+
+        if (userChannels.Count > 0) 
+            { buttons.Add(InlineKeyboardButton.WithCallbackData("Мои каналы📣", "/showchannels")); }
+
+        var keyboard = new InlineKeyboardMarkup(new[] { buttons });
 
         var text = $"""
             {caption}
 
             Добавлено каналов: 
 
-            {string.Join(Environment.NewLine, currentChannels.Select(link => $"📢 {link}"))}
+            {string.Join(Environment.NewLine, userChannels.Select(ch => $"📢 {ch.Link}").Take(5))}
+            ...
 
             Отправьте ссылку на другой ваш канал или нажмите (Завершить добавление➡️)
 
@@ -163,6 +173,11 @@ public class AddChannelHandler(
             ? update.CallbackQuery.Message
             : update.Message;
 
+        var keyboard = new InlineKeyboardMarkup(new[]
+        {
+             new[] { InlineKeyboardButton.WithCallbackData("🚀 Мои Каналы", "/showchannels") },
+        });
+
         var text = $"""
                 1️⃣ <b>Добавьте Ваши каналы</b>
 
@@ -178,6 +193,7 @@ public class AddChannelHandler(
             message.Chat.Id,
             photo: new InputFileStream(stream),
             userMessage: update.Message,
+            replyMarkup: keyboard,
             caption: text
         );
     }

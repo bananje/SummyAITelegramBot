@@ -1,5 +1,4 @@
 ﻿using SummyAITelegramBot.Core.Abstractions;
-using TL;
 
 namespace SummyAITelegramBot.Core.Domain.Models;
 
@@ -7,7 +6,12 @@ public class User : Entity<long>
 {
     public ChannelUserSettings ChannelUserSettings { get; set; }
 
+    public Subscription Subscription { get; set; }
+
+
     public ICollection<Channel> Channels { get; set; } = []; // Каналы, в которых состоит пользователь
+
+    public ICollection<DelayedUserPost> DelayedUserPosts { get; set; } = [];
 
     /// <summary>
     /// Действует ли подписка

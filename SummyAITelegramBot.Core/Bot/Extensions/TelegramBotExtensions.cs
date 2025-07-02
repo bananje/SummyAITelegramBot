@@ -4,6 +4,7 @@ using Telegram.Bot;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
+using Serilog;
 
 namespace SummyAITelegramBot.Core.Bot.Extensions;
 
@@ -82,58 +83,65 @@ public static class TelegramBotClientExtensions
         InlineKeyboardMarkup? replyMarkup = null,
         CancellationToken cancellationToken = default)
     {
-        // Удаляем сообщение пользователя
-        if (userMessage is not null && userMessage is { From.IsBot: false })
+        try
         {
-            try
-            {
-                await bot.DeleteMessage(chatId, userMessage.MessageId, cancellationToken);
-            }
-            catch { /* игнор */ }
-        }
-
-        if (_cache.TryGetValue(chatId, out CachedBotMessage? previous))
-        {
-            if (previous?.Type == MessageType.Photo)
+            // Удаляем сообщение пользователя
+            if (userMessage is not null && userMessage is { From.IsBot: false })
             {
                 try
                 {
-                    await bot.EditMessageCaption(
-                        chatId,
-                        previous.MessageId,
-                        caption,
-                        replyMarkup: replyMarkup,
-                        parseMode: ParseMode.Html,
-                        cancellationToken: cancellationToken);
-
-                    return;
+                    await bot.DeleteMessage(chatId, userMessage.MessageId, cancellationToken);
                 }
-                catch (ApiRequestException ex) when (ex.ErrorCode is 400 or 403)
-                {
-                    // не удалось редактировать
-                }
+                catch { /* игнор */ }
             }
 
-            try
+            if (_cache.TryGetValue(chatId, out CachedBotMessage? previous))
             {
-                await bot.DeleteMessage(chatId, previous.MessageId, cancellationToken);
+                if (previous?.Type == MessageType.Photo)
+                {
+                    try
+                    {
+                        await bot.EditMessageCaption(
+                            chatId,
+                            previous.MessageId,
+                            caption,
+                            replyMarkup: replyMarkup,
+                            parseMode: ParseMode.Html,
+                            cancellationToken: cancellationToken);
+
+                        return;
+                    }
+                    catch (ApiRequestException ex) when (ex.ErrorCode is 400 or 403)
+                    {
+                        // не удалось редактировать
+                    }
+                }
+
+                try
+                {
+                    await bot.DeleteMessage(chatId, previous.MessageId, cancellationToken);
+                }
+                catch { /* игнор */ }
             }
-            catch { /* игнор */ }
+
+            var sent = await bot.SendPhoto(
+                chatId,
+                photo,
+                caption: caption,
+                parseMode: ParseMode.Html,
+                replyMarkup: replyMarkup,
+                cancellationToken: cancellationToken);
+
+            _cache.Set(chatId, new CachedBotMessage
+            {
+                MessageId = sent.MessageId,
+                Type = MessageType.Photo
+            }, _cacheLifetime);
         }
-
-        var sent = await bot.SendPhoto(
-            chatId,
-            photo,
-            caption: caption,
-            parseMode: ParseMode.Html,
-            replyMarkup: replyMarkup,
-            cancellationToken: cancellationToken);
-
-        _cache.Set(chatId, new CachedBotMessage
+        catch (Exception ex)
         {
-            MessageId = sent.MessageId,
-            Type = MessageType.Photo
-        }, _cacheLifetime);
+            Log.Logger.Error(ex.Message);
+        }   
     }
 
     private class CachedBotMessage

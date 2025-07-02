@@ -99,6 +99,28 @@ namespace SummyAITelegramBot.Core.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Subscription",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    HasAutoPayment = table.Column<bool>(type: "boolean", nullable: false),
+                    EndDate = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    StartDate = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    Type = table.Column<int>(type: "integer", nullable: false),
+                    UserId = table.Column<long>(type: "bigint", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Subscription", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Subscription_Users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "UserSettings",
                 columns: table => new
                 {
@@ -121,10 +143,55 @@ namespace SummyAITelegramBot.Core.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
+            migrationBuilder.CreateTable(
+                name: "DelayedUserPost",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    UserId = table.Column<long>(type: "bigint", nullable: false),
+                    ChannelPostId = table.Column<int>(type: "integer", nullable: false),
+                    ChannelPostChannelId = table.Column<long>(type: "bigint", nullable: false),
+                    AddedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DelayedUserPost", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_DelayedUserPost_ChannelPosts_ChannelPostChannelId_ChannelPo~",
+                        columns: x => new { x.ChannelPostChannelId, x.ChannelPostId },
+                        principalTable: "ChannelPosts",
+                        principalColumns: new[] { "ChannelId", "Id" },
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_DelayedUserPost_Users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
             migrationBuilder.CreateIndex(
                 name: "IX_ChannelUser_UsersId",
                 table: "ChannelUser",
                 column: "UsersId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_DelayedUserPost_ChannelPostChannelId_ChannelPostId",
+                table: "DelayedUserPost",
+                columns: new[] { "ChannelPostChannelId", "ChannelPostId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_DelayedUserPost_UserId",
+                table: "DelayedUserPost",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Subscription_UserId",
+                table: "Subscription",
+                column: "UserId",
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_UserSettings_UserId",
@@ -137,19 +204,25 @@ namespace SummyAITelegramBot.Core.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "ChannelPosts");
+                name: "ChannelUser");
 
             migrationBuilder.DropTable(
-                name: "ChannelUser");
+                name: "DelayedUserPost");
+
+            migrationBuilder.DropTable(
+                name: "Subscription");
 
             migrationBuilder.DropTable(
                 name: "UserSettings");
 
             migrationBuilder.DropTable(
-                name: "Channels");
+                name: "ChannelPosts");
 
             migrationBuilder.DropTable(
                 name: "Users");
+
+            migrationBuilder.DropTable(
+                name: "Channels");
         }
     }
 }

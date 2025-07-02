@@ -5,6 +5,7 @@ using SummyAITelegramBot.Core.Bot.Utils;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace SummyAITelegramBot.API.Controllers;
 
@@ -39,10 +40,13 @@ public class TelegramWebHookController(
             }
 
             if (update.Type == UpdateType.Message
-                    && update.Message?.Text is { } commandPrefix
+                    && update.Message?.Text is { } command
                     && update.Message!.ReplyToMessage is null)
             {
                 HttpContext.Items["chatId"] = update.Message.Chat.Id;
+
+                var parts = command.Trim().Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+                var commandPrefix = parts[0];
 
                 await telegramUpdateFactory.DispatchAsync(update, commandPrefix);
                 return Ok();
@@ -55,13 +59,18 @@ public class TelegramWebHookController(
                 {
                     var callBack = update.CallbackQuery!;
 
-                    var callBackPrefix = callBack.Message.Text is null
-                        ? update.CallbackQuery.Data
-                        : callBack.Message.Text;
+                    var callBackPrefix = update.CallbackQuery.Data is null
+                        ? callBack.Message.Text
+                        : update.CallbackQuery.Data;
+
+                    callBackPrefix = callBackPrefix != null && callBackPrefix.Contains(':')
+                        ? callBackPrefix.Substring(0, callBackPrefix.IndexOf(':'))  // берём до двоеточия включительно
+                        : callBackPrefix;
 
                     await telegramUpdateFactory.DispatchAsync(
                         update,
                         callBackPrefix);
+
                     return Ok();
                 }
 

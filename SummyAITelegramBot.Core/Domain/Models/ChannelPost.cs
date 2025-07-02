@@ -11,4 +11,6 @@ public class ChannelPost : Entity<int>
     public long ChannelId { get; set; }
 
     public Channel Channel { get; set; }
+
+    public DelayedUserPost DelayedUserPost { get; set; }
 }

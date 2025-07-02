@@ -13,10 +13,19 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
     public DbSet<Channel> Channels => Set<Channel>();
 
+    public DbSet<Subscription> Subscriptions => Set<Subscription>();
+
+    public DbSet<DelayedUserPost> DelayedUserPosts => Set<DelayedUserPost>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<ChannelPost>()
             .HasKey(cp => new { cp.ChannelId, cp.Id });
+
+        modelBuilder.Entity<User>()
+            .HasOne(u => u.Subscription)
+            .WithOne(s => s.User)
+            .HasForeignKey<Subscription>(s => s.UserId);
 
         base.OnModelCreating(modelBuilder);
     }

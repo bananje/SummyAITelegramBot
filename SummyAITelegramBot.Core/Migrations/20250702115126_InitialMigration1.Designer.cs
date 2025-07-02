@@ -12,8 +12,8 @@ using SummyAITelegramBot.Infrastructure.Context;
 namespace SummyAITelegramBot.Core.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250627073621_InitialMigration")]
-    partial class InitialMigration
+    [Migration("20250702115126_InitialMigration1")]
+    partial class InitialMigration1
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -119,6 +119,65 @@ namespace SummyAITelegramBot.Core.Migrations
                     b.ToTable("UserSettings");
                 });
 
+            modelBuilder.Entity("SummyAITelegramBot.Core.Domain.Models.DelayedUserPost", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("AddedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("ChannelPostChannelId")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("ChannelPostId")
+                        .HasColumnType("integer");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("ChannelPostChannelId", "ChannelPostId")
+                        .IsUnique();
+
+                    b.ToTable("DelayedUserPosts");
+                });
+
+            modelBuilder.Entity("SummyAITelegramBot.Core.Domain.Models.Subscription", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("EndDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("HasAutoPayment")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTimeOffset>("StartDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("Subscriptions");
+                });
+
             modelBuilder.Entity("SummyAITelegramBot.Core.Domain.Models.User", b =>
                 {
                     b.Property<long>("Id")
@@ -211,14 +270,55 @@ namespace SummyAITelegramBot.Core.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("SummyAITelegramBot.Core.Domain.Models.DelayedUserPost", b =>
+                {
+                    b.HasOne("SummyAITelegramBot.Core.Domain.Models.User", "User")
+                        .WithMany("DelayedUserPosts")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SummyAITelegramBot.Core.Domain.Models.ChannelPost", "ChannelPost")
+                        .WithOne("DelayedUserPost")
+                        .HasForeignKey("SummyAITelegramBot.Core.Domain.Models.DelayedUserPost", "ChannelPostChannelId", "ChannelPostId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ChannelPost");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("SummyAITelegramBot.Core.Domain.Models.Subscription", b =>
+                {
+                    b.HasOne("SummyAITelegramBot.Core.Domain.Models.User", "User")
+                        .WithOne("Subscription")
+                        .HasForeignKey("SummyAITelegramBot.Core.Domain.Models.Subscription", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("SummyAITelegramBot.Core.Domain.Models.Channel", b =>
                 {
                     b.Navigation("Posts");
                 });
 
+            modelBuilder.Entity("SummyAITelegramBot.Core.Domain.Models.ChannelPost", b =>
+                {
+                    b.Navigation("DelayedUserPost")
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("SummyAITelegramBot.Core.Domain.Models.User", b =>
                 {
                     b.Navigation("ChannelUserSettings")
+                        .IsRequired();
+
+                    b.Navigation("DelayedUserPosts");
+
+                    b.Navigation("Subscription")
                         .IsRequired();
                 });
 #pragma warning restore 612, 618
