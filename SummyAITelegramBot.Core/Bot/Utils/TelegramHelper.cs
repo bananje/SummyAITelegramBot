@@ -1,4 +1,5 @@
 ﻿using System.Text.RegularExpressions;
+using Telegram.Bot.Types;
 
 namespace SummyAITelegramBot.Core.Bot.Utils;
 
@@ -23,5 +24,20 @@ public class TelegramHelper
         return Regex.IsMatch(input, usernamePattern, RegexOptions.IgnoreCase) ||
                Regex.IsMatch(input, publicLinkPattern, RegexOptions.IgnoreCase) ||
                Regex.IsMatch(input, privateInvitePattern, RegexOptions.IgnoreCase);
+    }
+
+    public static (long userId, long chatId) GetUserAndChatId(Update update)
+    {
+        if (update.Message != null)
+        {
+            return (update.Message.From.Id, update.Message.Chat.Id);
+        }
+
+        if (update.CallbackQuery != null)
+        {
+            return (update.CallbackQuery.From.Id, update.CallbackQuery.Message.Chat.Id);
+        }
+
+        throw new Exception("Неизвестный формат обновления");
     }
 }

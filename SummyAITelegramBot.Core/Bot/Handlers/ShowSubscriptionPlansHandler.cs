@@ -55,8 +55,10 @@ public class ShowSubscriptionPlansHandler(
                 InlineKeyboardButton.WithCallbackData("199р. за месяц", $"/pay"),
 
                 InlineKeyboardButton.WithCallbackData("1500р. навсегда", $"/pay"),
-
-                InlineKeyboardButton.WithCallbackData("Каналы", $"/add")
+            },
+            new[]
+            {
+                InlineKeyboardButton.WithCallbackData("Продолжить настройку каналов", $"/showchannelsettings")
             }
         });
         

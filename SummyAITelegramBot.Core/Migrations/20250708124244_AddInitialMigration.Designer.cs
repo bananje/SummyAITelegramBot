@@ -12,8 +12,8 @@ using SummyAITelegramBot.Infrastructure.Context;
 namespace SummyAITelegramBot.Core.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250702115126_InitialMigration1")]
-    partial class InitialMigration1
+    [Migration("20250708124244_AddInitialMigration")]
+    partial class AddInitialMigration
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -59,6 +59,9 @@ namespace SummyAITelegramBot.Core.Migrations
 
                     b.Property<string>("Link")
                         .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Title")
                         .HasColumnType("text");
 
                     b.HasKey("Id");
@@ -147,6 +150,34 @@ namespace SummyAITelegramBot.Core.Migrations
                         .IsUnique();
 
                     b.ToTable("DelayedUserPosts");
+                });
+
+            modelBuilder.Entity("SummyAITelegramBot.Core.Domain.Models.SentUserPost", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<long>("ChannelId")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("ChannelPostId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("SentAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChannelId", "ChannelPostId")
+                        .IsUnique();
+
+                    b.ToTable("SentUserPosts");
                 });
 
             modelBuilder.Entity("SummyAITelegramBot.Core.Domain.Models.Subscription", b =>
@@ -287,6 +318,17 @@ namespace SummyAITelegramBot.Core.Migrations
                     b.Navigation("ChannelPost");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("SummyAITelegramBot.Core.Domain.Models.SentUserPost", b =>
+                {
+                    b.HasOne("SummyAITelegramBot.Core.Domain.Models.ChannelPost", "ChannelPost")
+                        .WithOne()
+                        .HasForeignKey("SummyAITelegramBot.Core.Domain.Models.SentUserPost", "ChannelId", "ChannelPostId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ChannelPost");
                 });
 
             modelBuilder.Entity("SummyAITelegramBot.Core.Domain.Models.Subscription", b =>

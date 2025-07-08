@@ -43,4 +43,9 @@ public class OpenAISummarizationStrategy : ISummarizationStrategy
             .GetProperty("content")
             .GetString() ?? "[OpenAI: пустой ответ]";
     }
+
+    public Task<bool> ValidateOfUniqueTextAsync(string allTexts, string currentText)
+    {
+        throw new NotImplementedException();
+    }
 }

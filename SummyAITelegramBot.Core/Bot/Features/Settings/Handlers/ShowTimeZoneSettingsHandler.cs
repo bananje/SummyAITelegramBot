@@ -21,16 +21,9 @@ public class ShowTimeZoneSettingsHandler(ITelegramBotClient bot) : ITelegramUpda
         var timezones = new (string Title, string Id)[]
         {
             ("🇷🇺 Москва (UTC+3)", "Europe/Moscow"),
-            ("🇷🇺 Калининград (UTC+2)", "Europe/Kaliningrad"),
             ("🇷🇺 Самара (UTC+4)", "Europe/Samara"),
-            ("🇷🇺 Екатеринбург (UTC+5)", "Asia/Yekaterinburg"),
             ("🇷🇺 Омск (UTC+6)", "Asia/Omsk"),
-            ("🇷🇺 Красноярск (UTC+7)", "Asia/Krasnoyarsk"),
-            ("🇷🇺 Иркутск (UTC+8)", "Asia/Irkutsk"),
-            ("🇷🇺 Якутск (UTC+9)", "Asia/Yakutsk"),
-            ("🇷🇺 Владивосток (UTC+10)", "Asia/Vladivostok"),
-            ("🇷🇺 Магадан (UTC+11)", "Asia/Magadan"),
-            ("🇷🇺 Камчатка (UTC+12)", "Asia/Kamchatka"),
+            ("🇷🇺 Красноярск (UTC+7)", "Asia/Krasnoyarsk")
         };
 
         var keyboard = new List<List<InlineKeyboardButton>>();
@@ -42,6 +35,11 @@ public class ShowTimeZoneSettingsHandler(ITelegramBotClient bot) : ITelegramUpda
                 .Select(tz => InlineKeyboardButton.WithCallbackData(tz.Title, $"{Consts.TimeZoneSettingCallBackPrefix}{tz.Id}"))
                 .ToList());
         }
+
+        keyboard.Add(new List<InlineKeyboardButton>
+        {
+            InlineKeyboardButton.WithCallbackData("🇷🇺 Екатеринбург (UTC+5)", "Asia/Yekaterinburg")
+        });
 
         await bot.ReactivelySendAsync(
             chatId,

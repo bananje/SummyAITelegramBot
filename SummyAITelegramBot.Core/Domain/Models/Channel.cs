@@ -6,6 +6,8 @@ public class Channel : Entity<long>
 {
     public string Link { get; set; } = string.Empty;
 
+    public string? Title { get; set; } = string.Empty;   
+
     public bool IsPrivate { get; set; }
 
     /// <summary>

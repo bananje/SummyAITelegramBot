@@ -33,33 +33,41 @@ public static class TelegramBotClientExtensions
 
         if (_cache.TryGetValue(chatId, out CachedBotMessage? previous))
         {
-            if (previous?.Type == MessageType.Text)
-            {
-                try
-                {
-                    await bot.EditMessageText(
-                        chatId,
-                        previous.MessageId,
-                        text,
-                        replyMarkup: replyMarkup,
-                        parseMode: ParseMode.Html,
-                        cancellationToken: cancellationToken);
-
-                    return; // успешно отредактировали — выходим
-                }
-                catch (ApiRequestException ex) when (ex.ErrorCode is 400 or 403)
-                {
-                    // не получилось — продолжим удалять и пересылать
-                }
-            }
-
             try
             {
-                await bot.DeleteMessage(chatId, previous.MessageId, cancellationToken);
-            }
-            catch { /* игнор */ }
-        }
+                switch (previous?.Type)
+                {
+                    case MessageType.Text:
+                        await bot.EditMessageText(
+                            chatId,
+                            previous.MessageId,
+                            text,
+                            replyMarkup: replyMarkup,
+                            parseMode: ParseMode.Html,
+                            cancellationToken: cancellationToken);
+                        return;
 
+                    case MessageType.Photo:
+                        await bot.EditMessageCaption(
+                            chatId,
+                            previous.MessageId,
+                            caption: text, // здесь text = новая подпись
+                            replyMarkup: replyMarkup,
+                            parseMode: ParseMode.Html,
+                            cancellationToken: cancellationToken);
+                        return;
+
+                    // если хотите обрабатывать другие типы, можно добавить сюда
+
+                    default:
+                        break; // пойдём на удаление + пересылку
+                }
+            }
+            catch (ApiRequestException ex) when (ex.ErrorCode is 400 or 403)
+            {
+                // не получилось — удалим и пересоздадим
+            }           
+        }
         var sent = await bot.SendMessage(
             chatId,
             text,

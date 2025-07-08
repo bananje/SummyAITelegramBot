@@ -1,8 +1,10 @@
 ﻿using Hangfire;
 using Microsoft.EntityFrameworkCore;
 using SummyAITelegramBot.Core.Abstractions;
+using SummyAITelegramBot.Core.AI.Abstractions;
 using SummyAITelegramBot.Core.Bot.Extensions;
 using SummyAITelegramBot.Core.Bot.Features.Channel.Abstractions;
+using SummyAITelegramBot.Core.Domain.Enums;
 using SummyAITelegramBot.Core.Domain.Models;
 using Telegram.Bot;
 using Telegram.Bot.Types.ReplyMarkups;
@@ -12,6 +14,7 @@ namespace SummyAITelegramBot.Core.Bot.Features.Channel.Services;
 
 public class TelegramSenderService(
     ITelegramBotClient telegramBotClient,
+    ISummarizationStrategyFactory aiFactory,
     IUnitOfWork unitOfWork) : ITelegramSenderService
 {
     public async Task ResolveNotifyUsersAsync(ChannelPost post)
@@ -23,13 +26,56 @@ public class TelegramSenderService(
             .ToListAsync();
 
         var delayedRepo = unitOfWork.Repository<long, DelayedUserPost>();
+        var sentPostsRepo = unitOfWork.Repository<int, SentUserPost>();  
 
         foreach (var user in users)
         {
             var settings = user.ChannelUserSettings ?? throw new Exception($"Отсутсвуют настройки у пользователя ID:{user.Id}");
             if (settings.InstantlyTimeNotification.GetValueOrDefault())
             {
-                await telegramBotClient.SendMessage(chatId: user.Id, text: "push " + post.Text);
+                // Получим посты за последние 10 минут
+                var recentPosts = await sentPostsRepo.GetIQueryable()
+                    .Where(p => p.UserId == user.Id &&
+                                p.SentAt >= DateTime.UtcNow.AddMinutes(-10))
+                    .Include(p => p.ChannelPost)
+                    .ToListAsync();
+
+                if (recentPosts.Count == 0)
+                {
+                    await telegramBotClient.SendMessage(chatId: user.Id, text: "push " + post.Text);
+                    await sentPostsRepo.AddAsync(new SentUserPost
+                    {
+                        UserId = user.Id,
+                        ChannelId = post.ChannelId,
+                        ChannelPostId = post.Id,
+                        SentAt = DateTime.UtcNow
+                    });
+                    await unitOfWork.CommitAsync();
+                    return;
+                }
+
+                // Объединяем все тексты
+                var allTexts = new List<string>();
+                allTexts.AddRange(recentPosts.Select(p => p.ChannelPost.Text));
+
+                var currentPostText = post.Text;
+                var message = string.Join("\n\n", allTexts);
+
+                var aiHandler = aiFactory.Create(AiModel.DeepSeek);
+                var isUniquePost = await aiHandler.ValidateOfUniqueTextAsync(message, currentPostText);
+
+                if (isUniquePost)
+                {
+                    await telegramBotClient.SendMessage(chatId: user.Id, text: "push " + post.Text);
+
+                    await sentPostsRepo.AddAsync(new SentUserPost
+                    {
+                        UserId = user.Id,
+                        ChannelId = post.ChannelId,
+                        ChannelPostId = post.Id,
+                        SentAt = DateTime.UtcNow
+                    });
+                }
             }
             else
             {

@@ -11,6 +11,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
     public DbSet<ChannelPost> ChannelPosts => Set<ChannelPost>();
 
+    public DbSet<SentUserPost> SentUserPosts => Set<SentUserPost>();
+
     public DbSet<Channel> Channels => Set<Channel>();
 
     public DbSet<Subscription> Subscriptions => Set<Subscription>();
@@ -26,6 +28,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             .HasOne(u => u.Subscription)
             .WithOne(s => s.User)
             .HasForeignKey<Subscription>(s => s.UserId);
+
+        modelBuilder.Entity<SentUserPost>()
+            .HasOne(s => s.ChannelPost)
+            .WithOne() // если в ChannelPost нет навигационного свойства на SentUserPost
+            .HasForeignKey<SentUserPost>(s => new { s.ChannelId, s.ChannelPostId })
+            .HasPrincipalKey<ChannelPost>(cp => new { cp.ChannelId, cp.Id });
 
         base.OnModelCreating(modelBuilder);
     }

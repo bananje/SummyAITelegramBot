@@ -45,8 +45,9 @@ var builder = WebApplication.CreateBuilder(args);
     builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
     builder.Services.AddHttpContextAccessor();
 
-    builder.Services.AddSingleton<ITelegramBotClient>(new TelegramBotClient(builder.Configuration["Token"]));
-
+    var token = builder.Configuration["Telegram:BotToken"]
+        ?? throw new Exception("Bot token is not configured");
+    builder.Services.AddSingleton<ITelegramBotClient>(new TelegramBotClient(token));
 
     builder.Services.Scan(scan => scan
        .FromAssemblyOf<ITelegramUpdateHandler>()
@@ -84,7 +85,8 @@ var builder = WebApplication.CreateBuilder(args);
     builder.Services.AddHttpClient("DeepSeek", client =>
     {
         client.BaseAddress = new Uri("https://openrouter.ai/api/v1/");
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "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");
+        client.DefaultRequestHeaders.Authorization = 
+            new AuthenticationHeaderValue("Bearer", builder.Configuration["OpenRouter:ApiToken"]);
 
         client.DefaultRequestHeaders.Add("X-Title", "SummyAI");
     });
@@ -103,11 +105,21 @@ var builder = WebApplication.CreateBuilder(args);
     {
         cfg.RegisterServicesFromAssembly(typeof(ProcessTelegramChannelPostCommandHandler).Assembly);
     });
-    //builder.Services.AddHostedService<ChannelMonitoringService>();
+    builder.Services.AddHostedService<ChannelMonitoringService>();
 
     builder.Services.AddSingleton<WTelegram.Client>(provider =>
-    {      
-        return new WTelegram.Client(Config); 
+    {
+        var configuration = provider.GetRequiredService<IConfiguration>();
+
+        string Config(string what) => what switch
+        {
+            "api_id" => configuration["Telegram:ApiId"],
+            "api_hash" => configuration["Telegram:ApiHash"],
+            "phone_number" => configuration["Telegram:PhoneNumber"],
+            _ => null
+        };
+
+        return new WTelegram.Client(Config);
     });
 
     builder.Services.AddScoped<IPostService, PostService>();
@@ -116,17 +128,7 @@ var builder = WebApplication.CreateBuilder(args);
     {
         options.ForwardedHeaders =
             ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
-    });
-}
-static string Config(string what)
-{
-    return what switch
-    {
-        "api_id" => "28909018",                   // Твой api_id из Telegram
-        "api_hash" => "e2ddd24db858eefbf3c2434b895a40cf", // Твой api_hash из Telegram
-        "phone_number" => "+79183207444",       // Номер телефона (только при первом запуске) // Код из SMS/Telegram при первом входе    // Пароль, если включена двухфакторка
-        _ => null
-    };
+    });    
 }
 
 var app = builder.Build();

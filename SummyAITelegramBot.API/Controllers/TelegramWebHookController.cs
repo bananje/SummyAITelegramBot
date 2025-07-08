@@ -1,11 +1,13 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Caching.Memory;
+using Microsoft.EntityFrameworkCore;
+using SummyAITelegramBot.Core.Abstractions;
 using SummyAITelegramBot.Core.Bot.Abstractions;
+using SummyAITelegramBot.Core.Bot.Features.User.Abstractions;
 using SummyAITelegramBot.Core.Bot.Utils;
+using SummyAITelegramBot.Core.Domain.Models;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace SummyAITelegramBot.API.Controllers;
 
@@ -13,6 +15,8 @@ namespace SummyAITelegramBot.API.Controllers;
 [ApiController]
 public class TelegramWebHookController(
     ITelegramUpdateFactory telegramUpdateFactory,
+    IUserService userService,
+    IUnitOfWork unitOfWork,
     ITelegramBotClient botClient) : ControllerBase
 {
     [HttpGet]
@@ -30,6 +34,12 @@ public class TelegramWebHookController(
     {
         try
         {
+            if (!await CheckUser(update))
+            {
+                await telegramUpdateFactory.DispatchAsync(update, "/start");
+                return Ok();
+            }
+
             // обработка ответа с ссылкой на канал (частный случай)
             if (update.Type == UpdateType.Message
                 && TelegramHelper.IsTelegramChannelLink(update.Message?.Text))
@@ -110,5 +120,23 @@ public class TelegramWebHookController(
         {
             return BadRequest(EX.Message + host);
         }
+    }
+
+    private async Task<bool> CheckUser(Update update)
+    {
+        var userInfo = TelegramHelper.GetUserAndChatId(update);
+
+        var userId = userInfo.chatId;
+        var userRepository = unitOfWork.Repository<long, Core.Domain.Models.User>();
+
+        var user = await userRepository.GetIQueryable()
+            .FirstOrDefaultAsync(u => u.Id == userId);
+
+        if (user is null)
+        {
+            return false;
+        }
+
+        return true;
     }
 }
