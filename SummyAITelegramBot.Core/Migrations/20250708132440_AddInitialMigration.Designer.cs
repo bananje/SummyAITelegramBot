@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using SummyAITelegramBot.Infrastructure.Context;
@@ -11,9 +12,11 @@ using SummyAITelegramBot.Infrastructure.Context;
 namespace SummyAITelegramBot.Core.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250708132440_AddInitialMigration")]
+    partial class AddInitialMigration
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -130,6 +133,9 @@ namespace SummyAITelegramBot.Core.Migrations
                     b.Property<long>("ChannelId")
                         .HasColumnType("bigint");
 
+                    b.Property<long>("ChannelPostChannelId")
+                        .HasColumnType("bigint");
+
                     b.Property<int>("ChannelPostId")
                         .HasColumnType("integer");
 
@@ -141,6 +147,9 @@ namespace SummyAITelegramBot.Core.Migrations
                     b.HasIndex("UserId");
 
                     b.HasIndex("ChannelId", "ChannelPostId")
+                        .IsUnique();
+
+                    b.HasIndex("ChannelPostChannelId", "ChannelPostId")
                         .IsUnique();
 
                     b.ToTable("DelayedUserPosts");
@@ -304,8 +313,14 @@ namespace SummyAITelegramBot.Core.Migrations
                         .IsRequired();
 
                     b.HasOne("SummyAITelegramBot.Core.Domain.Models.ChannelPost", "ChannelPost")
-                        .WithOne("DelayedUserPost")
+                        .WithOne()
                         .HasForeignKey("SummyAITelegramBot.Core.Domain.Models.DelayedUserPost", "ChannelId", "ChannelPostId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SummyAITelegramBot.Core.Domain.Models.ChannelPost", null)
+                        .WithOne("DelayedUserPost")
+                        .HasForeignKey("SummyAITelegramBot.Core.Domain.Models.DelayedUserPost", "ChannelPostChannelId", "ChannelPostId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 

@@ -6,6 +6,7 @@ using SummyAITelegramBot.Core.Bot.Extensions;
 using System.Reflection;
 using Telegram.Bot;
 using Telegram.Bot.Types;
+using Telegram.Bot.Types.ReplyMarkups;
 
 public class TelegramUpdateFactory : ITelegramUpdateFactory
 {
@@ -60,10 +61,16 @@ public class TelegramUpdateFactory : ITelegramUpdateFactory
             """;
             await using var failStream = _imageService.GetImageStream("add_channel.jpg");
 
+            var keyboard = new InlineKeyboardMarkup(new[]
+            {
+                 new[] { InlineKeyboardButton.WithCallbackData("🦉 Личный кабинет", "/account") },
+            });
+
             await _bot.ReactivelySendPhotoAsync(
                 message.Chat.Id,
                 photo: new InputFileStream(failStream),
                 userMessage: query.Message,
+                replyMarkup: keyboard,
                 caption: text
             );
         }

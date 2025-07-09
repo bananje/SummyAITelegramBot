@@ -11,8 +11,6 @@ namespace SummyAITelegramBot.Core.Bot.Handlers;
 
 [TelegramUpdateHandler("/account")]
 public class AccountHadler(
-    ITelegramBotClient bot,
-    IUnitOfWork unitOfWork,
     ITelegramBotClient botClient,
     IStaticImageService imageService) : ITelegramUpdateHandler
 {
@@ -29,9 +27,10 @@ public class AccountHadler(
 
         var keyboard = new InlineKeyboardMarkup(new[]
         {
-             new[] { InlineKeyboardButton.WithCallbackData("🚀 Подписка", "/showsubscription") },
-             new[] { InlineKeyboardButton.WithCallbackData("🚀 Добавить каналы", "/add") },
-             new[] { InlineKeyboardButton.WithCallbackData("🚀 Удалить канал", "/showsubscription") },            
+             new[] { InlineKeyboardButton.WithCallbackData("💵 Подписка", "/showsubscription") },
+             new[] { InlineKeyboardButton.WithCallbackData("📣 Добавить канал", "/add") },
+             new[] { InlineKeyboardButton.WithCallbackData("❌ Удалить канал", "/mychannels") },
+             new[] { InlineKeyboardButton.WithCallbackData("⚙️ Настройки", "/showchannelsettings") },
         });
 
         await using var stream = imageService.GetImageStream(imagePath);

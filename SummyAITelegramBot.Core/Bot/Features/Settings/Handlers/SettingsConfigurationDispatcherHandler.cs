@@ -26,7 +26,7 @@ public class SettingsConfigurationDispatcherHandler(
 
             if (settingCommand == "apply")
             {
-                await telegramUpdateFactory.DispatchAsync(update, "/channelcomplete");
+                await telegramUpdateFactory.DispatchAsync(update, "/complete");
                 return;
             }
 

@@ -35,6 +35,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             .HasForeignKey<SentUserPost>(s => new { s.ChannelId, s.ChannelPostId })
             .HasPrincipalKey<ChannelPost>(cp => new { cp.ChannelId, cp.Id });
 
+        modelBuilder.Entity<DelayedUserPost>()
+     .HasOne(d => d.ChannelPost)
+     .WithOne(cp => cp.DelayedUserPost)
+     .HasForeignKey<DelayedUserPost>(d => new { d.ChannelId, d.ChannelPostId })
+     .HasPrincipalKey<ChannelPost>(cp => new { cp.ChannelId, cp.Id });
+
         base.OnModelCreating(modelBuilder);
     }
 }

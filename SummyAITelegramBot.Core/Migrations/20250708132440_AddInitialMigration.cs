@@ -151,13 +151,19 @@ namespace SummyAITelegramBot.Core.Migrations
                     Id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     UserId = table.Column<long>(type: "bigint", nullable: false),
+                    ChannelId = table.Column<long>(type: "bigint", nullable: false),
                     ChannelPostId = table.Column<int>(type: "integer", nullable: false),
-                    ChannelPostChannelId = table.Column<long>(type: "bigint", nullable: false),
-                    AddedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                    ChannelPostChannelId = table.Column<long>(type: "bigint", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_DelayedUserPosts", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_DelayedUserPosts_ChannelPosts_ChannelId_ChannelPostId",
+                        columns: x => new { x.ChannelId, x.ChannelPostId },
+                        principalTable: "ChannelPosts",
+                        principalColumns: new[] { "ChannelId", "Id" },
+                        onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_DelayedUserPosts_ChannelPosts_ChannelPostChannelId_ChannelP~",
                         columns: x => new { x.ChannelPostChannelId, x.ChannelPostId },
@@ -198,6 +204,12 @@ namespace SummyAITelegramBot.Core.Migrations
                 name: "IX_ChannelUser_UsersId",
                 table: "ChannelUser",
                 column: "UsersId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_DelayedUserPosts_ChannelId_ChannelPostId",
+                table: "DelayedUserPosts",
+                columns: new[] { "ChannelId", "ChannelPostId" },
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_DelayedUserPosts_ChannelPostChannelId_ChannelPostId",

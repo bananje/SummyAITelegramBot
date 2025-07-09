@@ -23,14 +23,14 @@ public class CompleteHandler(
         var text = $"""
                 👍 Summy к вашим услугам
 
-                Теперь вы будете каждый день получать сводки из ваших любимых каналов!
+                Теперь вы будете каждый день получать сводки в указанное время из ваших любимых каналов!
                 """;
 
         var imagePath = "summy_time.jpg";
 
         var keyboard = new InlineKeyboardMarkup(new[]
         {
-             new[] { InlineKeyboardButton.WithCallbackData("📣 Добавить канал", "/add") },
+             new[] { InlineKeyboardButton.WithCallbackData("🦉 Личный кабинет", "/account") },
         });
 
         await using var stream = imageService.GetImageStream(imagePath);

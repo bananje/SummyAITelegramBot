@@ -82,6 +82,7 @@ public class TelegramSenderService(
                 await delayedRepo.AddAsync(new DelayedUserPost
                 {
                     UserId = user.Id,
+                    ChannelId = post.ChannelId,
                     ChannelPostId = post.Id
                 });
             }
@@ -112,14 +113,12 @@ public class TelegramSenderService(
 
         if (!grouped.Any())
         {
-            await telegramBotClient.SendMessage(userId, "Нет новых постов");
             return;
         }
 
         var current = grouped.ElementAtOrDefault(page);
         if (current == null)
         {
-            await telegramBotClient.SendMessage(userId, "Страница не найдена");
             return;
         }
 

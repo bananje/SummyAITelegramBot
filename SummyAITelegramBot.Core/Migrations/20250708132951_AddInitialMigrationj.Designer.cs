@@ -12,8 +12,8 @@ using SummyAITelegramBot.Infrastructure.Context;
 namespace SummyAITelegramBot.Core.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250708124244_AddInitialMigration")]
-    partial class AddInitialMigration
+    [Migration("20250708132951_AddInitialMigrationj")]
+    partial class AddInitialMigrationj
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -130,8 +130,8 @@ namespace SummyAITelegramBot.Core.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
-                    b.Property<DateTime>("AddedDate")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long>("ChannelId")
+                        .HasColumnType("bigint");
 
                     b.Property<long>("ChannelPostChannelId")
                         .HasColumnType("bigint");
@@ -145,6 +145,9 @@ namespace SummyAITelegramBot.Core.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("UserId");
+
+                    b.HasIndex("ChannelId", "ChannelPostId")
+                        .IsUnique();
 
                     b.HasIndex("ChannelPostChannelId", "ChannelPostId")
                         .IsUnique();
@@ -310,6 +313,12 @@ namespace SummyAITelegramBot.Core.Migrations
                         .IsRequired();
 
                     b.HasOne("SummyAITelegramBot.Core.Domain.Models.ChannelPost", "ChannelPost")
+                        .WithOne()
+                        .HasForeignKey("SummyAITelegramBot.Core.Domain.Models.DelayedUserPost", "ChannelId", "ChannelPostId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SummyAITelegramBot.Core.Domain.Models.ChannelPost", null)
                         .WithOne("DelayedUserPost")
                         .HasForeignKey("SummyAITelegramBot.Core.Domain.Models.DelayedUserPost", "ChannelPostChannelId", "ChannelPostId")
                         .OnDelete(DeleteBehavior.Cascade)
