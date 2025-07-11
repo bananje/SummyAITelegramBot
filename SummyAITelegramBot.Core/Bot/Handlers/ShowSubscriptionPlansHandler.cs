@@ -13,14 +13,16 @@ namespace SummyAITelegramBot.Core.Bot.Handlers;
 [TelegramUpdateHandler("/showsubscription")]
 public class ShowSubscriptionPlansHandler(
     ITelegramBotClient bot,
+    IUserCommandCache commandCache,
     IStaticImageService imageService) : ITelegramUpdateHandler
 {
     private readonly IRepository<long, Domain.Models.User> _userRepository;
 
     public ShowSubscriptionPlansHandler(
         ITelegramBotClient bot,
+        IUserCommandCache commandCache,
         IUnitOfWork unitOfWork,
-        IStaticImageService imageService) : this(bot, imageService)
+        IStaticImageService imageService) : this(bot, commandCache, imageService)
     {
         _userRepository = unitOfWork.Repository<long, Domain.Models.User>();
     }
@@ -48,20 +50,32 @@ public class ShowSubscriptionPlansHandler(
             return;
         }
 
-        var keyboard = new InlineKeyboardMarkup(new[]
+        var keyboardButtons = new List<List<InlineKeyboardButton>>
         {
-            new[]
+            new List<InlineKeyboardButton>
             {
-                InlineKeyboardButton.WithCallbackData("199р. за месяц", $"/pay"),
-
-                InlineKeyboardButton.WithCallbackData("1500р. навсегда", $"/pay"),
-            },
-            new[]
-            {
-                InlineKeyboardButton.WithCallbackData("Продолжить настройку каналов", $"/showchannelsettings")
+                InlineKeyboardButton.WithCallbackData("199р. /меc", "/pay"),
+                InlineKeyboardButton.WithCallbackData("1500р. навсегда", "/pay")
             }
-        });
-        
+        };
+
+        var backCommand = commandCache.GetLastCommand(chatId) ?? "/mychannels";
+
+        if (backCommand == "/add")
+        {
+            keyboardButtons.Add(new List<InlineKeyboardButton>
+            {
+                InlineKeyboardButton.WithCallbackData("Продолжить настройку каналов", "/showchannelsettings")
+            });
+        }
+        else
+        {
+            keyboardButtons.Add(new List<InlineKeyboardButton>
+            {
+                InlineKeyboardButton.WithCallbackData("Личный кабинет", "/account")
+            });
+        }
+
         var text = $"""
             Нравится как работает Summy?
             Для того, чтобы добавить больше каналов, Summy советует купить подписку 💌
@@ -77,7 +91,7 @@ public class ShowSubscriptionPlansHandler(
             photo: new InputFileStream(stream),
             userMessage: update.Message,
             caption: text,
-            replyMarkup: keyboard
+            replyMarkup: new InlineKeyboardMarkup(keyboardButtons)
         );
     }
 
@@ -87,13 +101,13 @@ public class ShowSubscriptionPlansHandler(
         {
             new List<InlineKeyboardButton>
             {
-                InlineKeyboardButton.WithCallbackData("1500р. навсегда", $""),
+                InlineKeyboardButton.WithCallbackData("1500р. навсегда", "/PAY"),
             }
         });
 
         if (!subscription.HasAutoPayment)
         {
-            keyboard.AddButton(InlineKeyboardButton.WithCallbackData("Подключить автоаплатёж", $""));
+            keyboard.AddButtons(new[] { InlineKeyboardButton.WithCallbackData("Подключить автоаплатёж", $"") });
         }
 
         var text = $"""

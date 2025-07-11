@@ -17,8 +17,7 @@ namespace SummyAITelegramBot.Core.Bot.Handlers;
 [TelegramUpdateHandler("/start")]
 public class StartCommandHandler(
     ITelegramBotClient botClient, ILogger<StartCommandHandler> logger,
-    IUserService userService,
-    IMemoryCache cache,
+    IUserService userService, 
     IStaticImageService imageService,
     ITelegramUpdateFactory telegramUpdateFactory,
     IRepository<long, Domain.Models.User> userRepository) : ITelegramUpdateHandler
@@ -32,7 +31,7 @@ public class StartCommandHandler(
 
         if (user?.LastInteractionAt is not null)
         {
-            await telegramUpdateFactory.DispatchAsync(upd, "/add");
+            await telegramUpdateFactory.DispatchAsync(upd, "/account");
             return;
         }
         else

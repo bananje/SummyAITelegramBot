@@ -68,18 +68,26 @@ public static class TelegramBotClientExtensions
                 // не получилось — удалим и пересоздадим
             }           
         }
-        var sent = await bot.SendMessage(
+
+        try
+        {
+            var sent = await bot.SendMessage(
             chatId,
             text,
             replyMarkup: replyMarkup,
             parseMode: ParseMode.Html,
             cancellationToken: cancellationToken);
 
-        _cache.Set(chatId, new CachedBotMessage
+            _cache.Set(chatId, new CachedBotMessage
+            {
+                MessageId = sent.MessageId,
+                Type = MessageType.Text
+            }, _cacheLifetime);
+        }
+        catch (Exception ex)
         {
-            MessageId = sent.MessageId,
-            Type = MessageType.Text
-        }, _cacheLifetime);
+            Log.Error(ex, ex.Message);
+        }
     }
 
     public static async Task ReactivelySendPhotoAsync(

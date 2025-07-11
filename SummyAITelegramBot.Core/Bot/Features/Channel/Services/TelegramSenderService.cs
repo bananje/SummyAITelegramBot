@@ -2,11 +2,12 @@
 using Microsoft.EntityFrameworkCore;
 using SummyAITelegramBot.Core.Abstractions;
 using SummyAITelegramBot.Core.AI.Abstractions;
-using SummyAITelegramBot.Core.Bot.Extensions;
 using SummyAITelegramBot.Core.Bot.Features.Channel.Abstractions;
 using SummyAITelegramBot.Core.Domain.Enums;
 using SummyAITelegramBot.Core.Domain.Models;
+using System.Text;
 using Telegram.Bot;
+using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
 using UserEn = SummyAITelegramBot.Core.Domain.Models.User;
 
@@ -26,11 +27,12 @@ public class TelegramSenderService(
             .ToListAsync();
 
         var delayedRepo = unitOfWork.Repository<long, DelayedUserPost>();
-        var sentPostsRepo = unitOfWork.Repository<int, SentUserPost>();  
+        var sentPostsRepo = unitOfWork.Repository<int, SentUserPost>();
 
         foreach (var user in users)
         {
             var settings = user.ChannelUserSettings ?? throw new Exception($"Отсутсвуют настройки у пользователя ID:{user.Id}");
+
             if (settings.InstantlyTimeNotification.GetValueOrDefault())
             {
                 // Получим посты за последние 10 минут
@@ -42,7 +44,9 @@ public class TelegramSenderService(
 
                 if (recentPosts.Count == 0)
                 {
-                    await telegramBotClient.SendMessage(chatId: user.Id, text: "push " + post.Text);
+                    var messageText = FormatInstantSummary(post);
+                    await telegramBotClient.SendMessage(chatId: user.Id, text: messageText, parseMode: ParseMode.Html, linkPreviewOptions: true);
+
                     await sentPostsRepo.AddAsync(new SentUserPost
                     {
                         UserId = user.Id,
@@ -55,9 +59,7 @@ public class TelegramSenderService(
                 }
 
                 // Объединяем все тексты
-                var allTexts = new List<string>();
-                allTexts.AddRange(recentPosts.Select(p => p.ChannelPost.Text));
-
+                var allTexts = new List<string>(recentPosts.Select(p => p.ChannelPost.Text));
                 var currentPostText = post.Text;
                 var message = string.Join("\n\n", allTexts);
 
@@ -66,7 +68,9 @@ public class TelegramSenderService(
 
                 if (isUniquePost)
                 {
-                    await telegramBotClient.SendMessage(chatId: user.Id, text: "push " + post.Text);
+                    var messageText = FormatInstantSummary(post);
+
+                    await telegramBotClient.SendMessage(chatId: user.Id, text: messageText, parseMode: ParseMode.Html, linkPreviewOptions: true);
 
                     await sentPostsRepo.AddAsync(new SentUserPost
                     {
@@ -90,10 +94,10 @@ public class TelegramSenderService(
 
         await unitOfWork.CommitAsync();
 
-        // Поставить задачу в Hangfire для пользователей с отложенными сообщениями (см. ниже)
+        // Поставить задачу в Hangfire для пользователей с отложенными сообщениями
         foreach (var user in users.Where(u => !u.ChannelUserSettings.InstantlyTimeNotification.GetValueOrDefault()))
         {
-            await ScheduleNotificationJobIfNeeded(user);
+            ScheduleOrRescheduleRecurringJob(user);
         }
     }
 
@@ -112,60 +116,118 @@ public class TelegramSenderService(
             .ToList();
 
         if (!grouped.Any())
-        {
             return;
-        }
 
         var current = grouped.ElementAtOrDefault(page);
         if (current == null)
-        {
             return;
-        }
 
-        var text = $"""
-            📢 <b>{current.First().ChannelPost.Channel.Link}</b>
+        var channel = current.First().ChannelPost.Channel;
+        var channelUrl = channel.Link?.Trim();
+        var channelTitle = channel.Title?.Trim() ?? "Канал";
 
-            {string.Join("\n\n", current.Select(p => p.ChannelPost.Text))}
-            """;
+        // Извлекаем username из URL: https://t.me/username -> username
+        var channelUsername = channelUrl?
+            .Replace("https://t.me/", "", StringComparison.OrdinalIgnoreCase)
+            .TrimEnd('/');
 
-        var buttons = new List<InlineKeyboardButton>();
-        if (page > 0)
-            buttons.Add(InlineKeyboardButton.WithCallbackData("◀ Назад", $"/groupedposts:{page - 1}"));
-        if (page < grouped.Count - 1)
-            buttons.Add(InlineKeyboardButton.WithCallbackData("▶ Далее", $"/groupedposts:{page + 1}"));
+        var sb = new StringBuilder();
 
-        var markup = new InlineKeyboardMarkup(buttons);
+        sb.AppendLine("🗂 <b>Групповая сводка по каналу</b>\n");
 
-        await telegramBotClient.ReactivelySendAsync(userId, text, replyMarkup: markup);
+        if (!string.IsNullOrEmpty(channelUrl) && !string.IsNullOrEmpty(channelTitle))
+            sb.AppendLine($"<b>📢 <a href=\"{channelUrl}\">{channelTitle}</a></b>\n");
+        else
+            sb.AppendLine($"<b>📢 {channelTitle}</b>\n");
 
-        if (page == grouped.Count - 1)
+        foreach (var postEntry in current)
         {
-            await delayedRepo.RemoveRangeAsync(posts.Select(u => u.Id));
-            await unitOfWork.CommitAsync();
+            var post = postEntry.ChannelPost;
+            var postText = post.Text?.Trim() ?? "(без текста)";
+
+            // Ссылка на конкретный пост
+            string? postLink = !string.IsNullOrEmpty(channelUsername)
+                ? $"https://t.me/{channelUsername}/{post.Id}"
+                : null;
+
+            sb.AppendLine($"• {postText}");
+            if (postLink != null)
+                sb.AppendLine($"<a href=\"{postLink}\">🔍 Подробнее</a>");
+            sb.AppendLine();
         }
+
+        var navButtons = new List<InlineKeyboardButton>();
+        if (page > 0)
+            navButtons.Add(InlineKeyboardButton.WithCallbackData("◀ Назад", $"/groupedposts:{page - 1}"));
+        if (page < grouped.Count - 1)
+            navButtons.Add(InlineKeyboardButton.WithCallbackData("▶ Далее", $"/groupedposts:{page + 1}"));
+
+        var markup = navButtons.Any() ? new InlineKeyboardMarkup(navButtons) : null;
+
+        await telegramBotClient.SendMessage(
+            chatId: userId,
+            text: sb.ToString(),
+            parseMode: ParseMode.Html,
+            replyMarkup: markup,
+            linkPreviewOptions: true
+        );
     }
 
-    private async Task ScheduleNotificationJobIfNeeded(UserEn user)
+    private void ScheduleOrRescheduleRecurringJob(UserEn user)
     {
-        var delayedRepo = unitOfWork.Repository<long, DelayedUserPost>();
-        var hasPosts = await delayedRepo.GetIQueryable()
-            .AnyAsync(p => p.UserId == user.Id);
-
-        if (!hasPosts) return;
+        if (user.ChannelUserSettings.NotificationTime == null)
+            return;
 
         var tzId = user.ChannelUserSettings.TimeZoneId ?? "UTC";
         var tz = TimeZoneInfo.FindSystemTimeZoneById(tzId);
 
-        var nowUserTz = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, tz);
-        var notifTime = nowUserTz.Date + user.ChannelUserSettings.NotificationTime.Value.ToTimeSpan();
+        var time = user.ChannelUserSettings.NotificationTime.Value;
+        var cron = Cron.Daily(time.Hour, time.Minute);
 
-        if (notifTime <= nowUserTz)
-            notifTime = notifTime.AddDays(1);
+        var jobId = $"send_summary_{user.Id}";
 
-        var notifUtc = TimeZoneInfo.ConvertTimeToUtc(notifTime, tz);
+        // Hangfire сам перезапишет задачу, если AddOrUpdate уже был
+        RecurringJob.AddOrUpdate<TelegramSenderService>(
+            jobId,
+            service => service.SendGroupedPostsAsync(user.Id, 0),
+            cron,
+            timeZone: tz
+        );
+    }
 
-        BackgroundJob.Schedule<TelegramSenderService>(
-            s => s.SendGroupedPostsAsync(user.Id, 0),
-            notifUtc - DateTime.UtcNow);
+    private string FormatInstantSummary(ChannelPost post)
+    {
+        var channelTitle = post.Channel?.Title?.Trim() ?? "Канал";
+        var postText = string.IsNullOrWhiteSpace(post.Text) ? "Нет текста" : post.Text.Trim();
+        var channelUrlRaw = post.Channel?.Link?.Trim();
+
+        // Извлекаем username из ссылки канала (https://t.me/username)
+        var channelUsername = !string.IsNullOrEmpty(channelUrlRaw)
+            ? channelUrlRaw.Replace("https://t.me/", "", StringComparison.OrdinalIgnoreCase).TrimEnd('/')
+            : null;
+
+        if (string.IsNullOrEmpty(channelUsername) || post.Id == 0)
+        {
+            return $"""
+        📬 <b>Новая сводка!</b>
+
+        <b>📢 {channelTitle}</b>
+
+        {postText}
+        """;
+        }
+
+        var channelUrl = $"https://t.me/{channelUsername}";
+        var postUrl = $"https://t.me/{channelUsername}/{post.Id}";
+
+        return $"""
+    📬 <b>Новая сводка!</b>
+
+    <b>📢 <a href="{channelUrl}">{channelTitle}</a></b>
+
+    {postText}
+
+    <a href="{postUrl}">👁‍🗨 Посмотреть полностью</a>
+    """;
     }
 }

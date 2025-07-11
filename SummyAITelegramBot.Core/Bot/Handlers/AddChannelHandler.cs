@@ -12,7 +12,6 @@ using SummyAITelegramBot.Core.Bot.Attributes;
 using SummyAITelegramBot.Core.Bot.Extensions;
 using SummyAITelegramBot.Core.Domain.Models;
 using SummyAITelegramBot.Core.Bot.Utils;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace SummyAITelegramBot.Core.Bot.Handlers;
 
@@ -20,6 +19,7 @@ namespace SummyAITelegramBot.Core.Bot.Handlers;
 public class AddChannelHandler(
     ITelegramBotClient bot,
     IStaticImageService imageService,
+    IUserCommandCache commandCache,
     ITelegramUpdateFactory telegramUpdateFactory,
     ITelegramChannelAdapter channelAdapter,
     IMemoryCache cache) : ITelegramUpdateHandler
@@ -33,12 +33,14 @@ public class AddChannelHandler(
     public AddChannelHandler(
         ITelegramBotClient bot,
         IStaticImageService imageService,
+        IUserCommandCache commandCache,
         ITelegramUpdateFactory telegramUpdateFactory,
         ITelegramChannelAdapter channelAdapter,
         IMemoryCache cache,
         IUnitOfWork unitOfWork)
-        : this(bot, imageService, telegramUpdateFactory, channelAdapter, cache)
+        : this(bot, imageService, commandCache, telegramUpdateFactory, channelAdapter, cache)
     {
+
         _unitOfWork = unitOfWork;
         _userSettingsRepository = unitOfWork.Repository<Guid, ChannelUserSettings>();
         _userRepository = unitOfWork.Repository<long, UserEn>();
@@ -76,7 +78,9 @@ public class AddChannelHandler(
 
         if (user.Channels.Count == 5 && !user.HasSubscriptionPremium)
         {
+            commandCache.SetLastCommand(userId, "/add");
             await telegramUpdateFactory.DispatchAsync(update, "/showsubscription");
+
             return;
         }
 

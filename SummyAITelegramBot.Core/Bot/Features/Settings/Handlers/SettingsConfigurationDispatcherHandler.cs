@@ -4,7 +4,6 @@ using SummyAITelegramBot.Core.Bot.Abstractions;
 using SummyAITelegramBot.Core.Bot.Attributes;
 using SummyAITelegramBot.Core.Bot.Utils;
 using SummyAITelegramBot.Core.Domain.Models;
-using Telegram.Bot;
 using Telegram.Bot.Types;
 
 namespace SummyAITelegramBot.Core.Bot.Features.Settings.Handlers;
@@ -40,7 +39,7 @@ public class SettingsConfigurationDispatcherHandler(
                 await unitOfWork.CommitAsync();
             }
 
-            await telegramUpdateFactory.DispatchAsync(update, "/showtimezonesettings");
+            await telegramUpdateFactory.DispatchAsync(update, "/shownotificationtimesettings");
             return;
         }
     }

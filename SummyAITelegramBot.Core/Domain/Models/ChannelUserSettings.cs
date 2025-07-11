@@ -13,7 +13,7 @@ public class ChannelUserSettings : Entity<Guid>
     /// <summary>
     /// Часовой пояс
     /// </summary>
-    public string TimeZoneId { get; set; }
+    public string? TimeZoneId { get; set; }
 
     /// <summary>
     /// Моментально отправлять сводку при выходе поста в канале

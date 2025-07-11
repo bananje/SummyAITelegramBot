@@ -21,6 +21,8 @@ using Hangfire.PostgreSql;
 using SummyAITelegramBot.Core.Commands;
 using SummyAITelegramBot.Core.Utils.Repository;
 using SummyAITelegramBot.API.Jobs;
+using SummyAITelegramBot.Core.Bot.Utils;
+using TL;
 
 var builder = WebApplication.CreateBuilder(args);
 {
@@ -68,7 +70,6 @@ var builder = WebApplication.CreateBuilder(args);
     builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
     builder.Services.AddScoped<ISummarizationStrategyFactory, SummarizationStrategyFactory>();
-    builder.Services.AddScoped<OpenAISummarizationStrategy>();
     builder.Services.AddScoped<DeepSeekSummarizationStrategy>();
     builder.Services.Scan(scan => scan
        .FromAssemblyOf<ISummarizationStrategy>()
@@ -106,7 +107,7 @@ var builder = WebApplication.CreateBuilder(args);
         cfg.RegisterServicesFromAssembly(typeof(ProcessTelegramChannelPostCommandHandler).Assembly);
     });
     builder.Services.AddHostedService<ChannelMonitoringService>();
-
+    builder.Services.AddSingleton<IUserCommandCache, UserCommandCache>();
     builder.Services.AddSingleton<WTelegram.Client>(provider =>
     {
         var configuration = provider.GetRequiredService<IConfiguration>();

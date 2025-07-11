@@ -12,6 +12,7 @@ namespace SummyAITelegramBot.Core.Bot.Handlers;
 [TelegramUpdateHandler("/mychannels")]
 public class ShowChannelsPaginatedHandler(
     ITelegramBotClient bot,
+    IStaticImageService staticImageService,
     IUnitOfWork unitOfWork) : ITelegramUpdateHandler
 {
     private readonly IRepository<long, Domain.Models.User> _userRepository = unitOfWork.Repository<long, Domain.Models.User>();
@@ -29,6 +30,35 @@ public class ShowChannelsPaginatedHandler(
                 ?? throw new Exception($"Пользователь {userId} не найден.");
 
         var totalChannels = user.Channels.Count;
+
+        if (totalChannels == 0)
+        {
+            var noChannelsText = """
+                ❗️ <b>У вас пока нет добавленных каналов.</b>
+
+                Чтобы начать получать сводки, добавьте хотя бы один канал.
+                """;
+
+            var addChannelButton = new InlineKeyboardMarkup(new[]
+            {
+                new[]
+                {
+                    InlineKeyboardButton.WithCallbackData("➕ Добавить канал", "/add")
+                }
+            });
+
+            await using var stream = staticImageService.GetImageStream("add_channel.jpg");
+
+            await bot.ReactivelySendPhotoAsync(
+                chatId,
+                new InputFileStream(stream),
+                noChannelsText,
+                replyMarkup: addChannelButton,
+                userMessage: update.CallbackQuery?.Message ?? update.Message
+            );
+            return;
+        }
+
         var paginatedChannels = user.Channels
             .OrderBy(c => c.Link)
             .Skip(offset)
@@ -54,24 +84,12 @@ public class ShowChannelsPaginatedHandler(
 
         var markup = new InlineKeyboardMarkup(buttons);
 
-        if (update.CallbackQuery != null)
-        {
-            await bot.ReactivelySendAsync(
-                chatId,
-                text,
-                replyMarkup: markup,
-                userMessage: update.CallbackQuery.Message
-            );
-        }
-        else
-        {
-            await bot.ReactivelySendAsync(
-                chatId,
-                text,
-                replyMarkup: markup,
-                userMessage: update.Message
-            );
-        }
+        await bot.ReactivelySendAsync(
+            chatId,
+            text,
+            replyMarkup: markup,
+            userMessage: update.CallbackQuery?.Message ?? update.Message
+        );
     }
 
     private (long userId, long chatId) GetUserAndChatId(Update update)

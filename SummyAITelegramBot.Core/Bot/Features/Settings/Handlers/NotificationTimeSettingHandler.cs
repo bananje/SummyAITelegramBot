@@ -18,6 +18,7 @@ public class NotificationTimeSettingHandler(
     public async Task HandleAsync(Update update)
     {
         var query = update.CallbackQuery;
+        var (chatId, userId) = TelegramHelper.GetUserAndChatId(update);
 
         if (query.Data != null && query.Data.StartsWith(Consts.NotificationTimeSettingCallBackPrefix))
         {
@@ -27,9 +28,23 @@ public class NotificationTimeSettingHandler(
             var userSettings = await settingsRepostitory.GetIQueryable()
                 .FirstOrDefaultAsync(us => us.UserId == query.Message.Chat.Id);
 
+            if (userSettings is null)
+            {
+                userSettings = new ChannelUserSettings
+                {
+                    UserId = chatId
+                };
+            }
+
             if (timeStr == "realtime")
             {
                 userSettings.InstantlyTimeNotification = true;
+
+                await settingsRepostitory.CreateOrUpdateAsync(userSettings);
+
+                await unitOfWork.CommitAsync();
+                await telegramUpdateFactory.DispatchAsync(update, "/complete");
+                return;
             }
             else if (TimeOnly.TryParse(timeStr, out var time))
             {
@@ -43,7 +58,7 @@ public class NotificationTimeSettingHandler(
             }
 
             await unitOfWork.CommitAsync();
-            await telegramUpdateFactory.DispatchAsync(update, "/complete");
+            await telegramUpdateFactory.DispatchAsync(update, "/showtimezonesettings");
         }
     }
 }

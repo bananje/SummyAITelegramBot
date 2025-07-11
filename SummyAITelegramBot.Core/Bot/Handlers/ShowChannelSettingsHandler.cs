@@ -38,7 +38,10 @@ public class ShowChannelSettingsHandler(
             {
                 InlineKeyboardButton.WithCallbackData("Применить текущее",
                     $"{Consts.ChannelSettingsCallbackPrefix}apply"),
+            });
 
+            keyboard.Add(new List<InlineKeyboardButton>
+            {
                 InlineKeyboardButton.WithCallbackData("Поменять время",
                     $"{Consts.ChannelSettingsCallbackPrefix}clear-create")
             });
@@ -46,7 +49,7 @@ public class ShowChannelSettingsHandler(
             text = $"""
                 2️⃣ <b>Указываем время получения сводок</b>
 
-                Текущее время: {userSettings.NotificationTime} по {userSettings.TimeZoneId}
+                Текущее время: {userSettings.NotificationTime.ToString() + $"по {userSettings.TimeZoneId}" ?? "в момент выхода поста"}
                 для получения сводок🦉
                 """;
         }

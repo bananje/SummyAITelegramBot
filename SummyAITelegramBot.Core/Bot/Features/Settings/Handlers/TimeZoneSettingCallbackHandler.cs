@@ -45,9 +45,9 @@ public class TimeZoneSettingCallbackHandler(
                 var tz = TimeZoneInfo.FindSystemTimeZoneById(timezoneId);
                 userSettings.TimeZoneId = tz.Id;
 
-                await settingsRepo.UpdateAsync(userSettings);
+                await settingsRepo.CreateOrUpdateAsync(userSettings);
                 await unitOfWork.CommitAsync();
-                await updateFactory.DispatchAsync(update, "/shownotificationtimesettings");
+                await updateFactory.DispatchAsync(update, "/complete");
             }
             catch (Exception ex)
             {

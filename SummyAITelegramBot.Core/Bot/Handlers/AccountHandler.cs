@@ -27,10 +27,10 @@ public class AccountHadler(
 
         var keyboard = new InlineKeyboardMarkup(new[]
         {
-             new[] { InlineKeyboardButton.WithCallbackData("💵 Подписка", "/showsubscription") },
-             new[] { InlineKeyboardButton.WithCallbackData("📣 Добавить канал", "/add") },
-             new[] { InlineKeyboardButton.WithCallbackData("❌ Удалить канал", "/mychannels") },
-             new[] { InlineKeyboardButton.WithCallbackData("⚙️ Настройки", "/showchannelsettings") },
+            new[] { InlineKeyboardButton.WithCallbackData("⚙️ Настроить время", "/showchannelsettings") },
+            new[] { InlineKeyboardButton.WithCallbackData("📣 Добавить канал", "/add") },
+            new[] { InlineKeyboardButton.WithCallbackData("❌ Удалить канал", "/mychannels") },
+            new[] { InlineKeyboardButton.WithCallbackData("💵 Подписка", "/showsubscription") },
         });
 
         await using var stream = imageService.GetImageStream(imagePath);

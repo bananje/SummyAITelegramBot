@@ -34,8 +34,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Bot\CommandHandlers\" />
-    <Folder Include="Bot\Features\Channel\Commands\" />
     <Folder Include="Bot\Features\Channel\Handlers\" />
   </ItemGroup>
 
