@@ -26,7 +26,7 @@ public class CompleteHandler(
                 Теперь вы будете каждый день получать сводки в указанное время из ваших любимых каналов!
                 """;
 
-        var imagePath = "summy_time.jpg";
+        var imagePath = "summy_complete.jpg";
 
         var keyboard = new InlineKeyboardMarkup(new[]
         {

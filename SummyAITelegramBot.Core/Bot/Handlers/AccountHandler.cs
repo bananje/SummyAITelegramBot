@@ -23,13 +23,13 @@ public class AccountHadler(
 
                 Текст личного кабинета
                 """;
-        var imagePath = "summy_start.png";
+        var imagePath = "summy_account.jpg";
 
         var keyboard = new InlineKeyboardMarkup(new[]
-        {
-            new[] { InlineKeyboardButton.WithCallbackData("⚙️ Настроить время", "/showchannelsettings") },
+        {            
             new[] { InlineKeyboardButton.WithCallbackData("📣 Добавить канал", "/add") },
             new[] { InlineKeyboardButton.WithCallbackData("❌ Удалить канал", "/mychannels") },
+            new[] { InlineKeyboardButton.WithCallbackData("⚙️ Настроить время", "/showchannelsettings") },
             new[] { InlineKeyboardButton.WithCallbackData("💵 Подписка", "/showsubscription") },
         });
 

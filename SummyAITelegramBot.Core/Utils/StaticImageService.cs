@@ -15,9 +15,12 @@ public class StaticImageService : IStaticImageService
     public Stream GetImageStream(string fileName)
     {
         var fullPath = Path.Combine(_webRootPath, "images", fileName);
+        var defaultPath = Path.Combine(_webRootPath, "images", "summy_start.png");
 
         if (!File.Exists(fullPath))
-            throw new FileNotFoundException("Image not found", fullPath);
+        {
+            return new FileStream(defaultPath, FileMode.Open, FileAccess.Read);
+        }
 
         return new FileStream(fullPath, FileMode.Open, FileAccess.Read);
     }

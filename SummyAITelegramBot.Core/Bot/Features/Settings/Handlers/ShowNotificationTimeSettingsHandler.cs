@@ -1,4 +1,5 @@
-﻿using SummyAITelegramBot.Core.Bot.Abstractions;
+﻿using SummyAITelegramBot.Core.Abstractions;
+using SummyAITelegramBot.Core.Bot.Abstractions;
 using SummyAITelegramBot.Core.Bot.Attributes;
 using SummyAITelegramBot.Core.Bot.Extensions;
 using SummyAITelegramBot.Core.Bot.Utils;
@@ -10,13 +11,14 @@ namespace SummyAITelegramBot.Core.Bot.Features.Settings.Handlers;
 
 [TelegramUpdateHandler("/shownotificationtimesettings")]
 public class ShowNotificationTimeSettingsHandler(
-    ITelegramBotClient bot) : ITelegramUpdateHandler
+    ITelegramBotClient bot,
+    IStaticImageService staticImageService) : ITelegramUpdateHandler
 {
     public async Task HandleAsync(Update update)
     {
         var chatId = update.CallbackQuery.Message.Chat.Id;
         var text =
-             "⏱️ В какое время ты хочешь получать сводки?\n\n";
+             """⏱️ В какое время ты хочешь получать сводки?""";
 
         var times = new[]
             {
@@ -42,9 +44,12 @@ public class ShowNotificationTimeSettingsHandler(
                 .ToList());
         }
 
-        await bot.ReactivelySendAsync(
+        await using var stream = staticImageService.GetImageStream("summy_time.jpg");
+
+        await bot.ReactivelySendPhotoAsync(
             chatId,
-            text: text,
+            caption: text,
+            photo: new InputFileStream(stream),
             replyMarkup: new InlineKeyboardMarkup(keyboard));
     }
 }

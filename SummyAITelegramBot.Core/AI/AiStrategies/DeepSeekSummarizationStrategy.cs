@@ -17,13 +17,20 @@ public class DeepSeekSummarizationStrategy : ISummarizationStrategy
 
     public async Task<string> SummarizeAsync(string inputText)
     {
+        var contextRole = "Ты — профессиональный редактор новостей. ";
+        var promt = "Ты — профессиональный редактор новостей. " +
+            "Сократи текст ниже до ОДНОГО предложения (максимум 15 слов), сохранив:  " +
+            "\r\n1. Ключевое событие/действие  \r\n2. Основного субъекта (компания/человек)  " +
+            "\r\n3. Важные цифры/даты (если есть)  \r\n4. Неожиданные или критичные последствия (если упомянуты)" +
+            "  \r\nИгнорируй: мнения автора, повторы, детали без прямого отношения к сути.";
+
         var request = new
         {
             model = "deepseek/deepseek-r1-0528-qwen3-8b:free",
             messages = new[]
                 {
-                    new { role = "system", content = "Ты — профессиональный редактор новостей. Сократи текст ниже до ОДНОГО предложения (максимум 15 слов), сохранив:  \r\n1. Ключевое событие/действие  \r\n2. Основного субъекта (компания/человек)  \r\n3. Важные цифры/даты (если есть)  \r\n4. Неожиданные или критичные последствия (если упомянуты)  \r\nИгнорируй: мнения автора, повторы, детали без прямого отношения к сути.  " },
-                    new { role = "user", content = $"Сделай короткую сводку следующего текста:\n\n{inputText}" }
+                    new { role = "system", content = contextRole },
+                    new { role = "user", content = $"{promt} Сделай короткую сводку следующего текста:\n\n{inputText}" }
                 }
         };
 
@@ -45,6 +52,8 @@ public class DeepSeekSummarizationStrategy : ISummarizationStrategy
 
     public async Task<bool> ValidateOfUniqueTextAsync(string allTexts, string currentText)
     {
+        var contextRole = "Ты — ассистент, проверяющий уникальность постов. " +
+            "Отвечай строго: true или false. Без объяснений.";
         var prompt = $"""
             У тебя есть список предыдущих постов и новый пост. 
             Ответь только "true" (если новый пост по смыслу уникален) 
@@ -68,7 +77,7 @@ public class DeepSeekSummarizationStrategy : ISummarizationStrategy
             model = "deepseek/deepseek-r1-0528-qwen3-8b:free",
             messages = new[]
             {
-            new { role = "system", content = "Ты — ассистент, проверяющий уникальность постов. Отвечай строго: true или false. Без объяснений." },
+            new { role = "system", content = contextRole},
             new { role = "user", content = prompt }
         }
         };

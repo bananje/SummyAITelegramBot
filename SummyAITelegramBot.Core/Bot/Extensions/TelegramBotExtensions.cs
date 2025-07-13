@@ -117,12 +117,15 @@ public static class TelegramBotClientExtensions
                 {
                     try
                     {
-                        await bot.EditMessageCaption(
-                            chatId,
-                            previous.MessageId,
-                            caption,
+                        await bot.EditMessageMedia(
+                            chatId: chatId,
+                            messageId: previous.MessageId,
+                            media: new InputMediaPhoto(photo)
+                            {
+                                Caption = caption,
+                                ParseMode = ParseMode.Html
+                            },
                             replyMarkup: replyMarkup,
-                            parseMode: ParseMode.Html,
                             cancellationToken: cancellationToken);
 
                         return;

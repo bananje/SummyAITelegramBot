@@ -47,11 +47,12 @@ public class ShowChannelSettingsHandler(
             });
 
             text = $"""
-                2️⃣ <b>Указываем время получения сводок</b>
+                    2️⃣ <b>Указываем время получения сводок</b>
 
-                Текущее время: {userSettings.NotificationTime.ToString() + $"по {userSettings.TimeZoneId}" ?? "в момент выхода поста"}
-                для получения сводок🦉
-                """;
+                    {(userSettings.InstantlyTimeNotification.HasValue
+                        ? "Включена моментальная отправка 🟢"
+                        : $"Текущее время: {userSettings.NotificationTime} по {userSettings.TimeZoneId} для получения сводок 🦉")}
+                    """;
         }
         else
         {
@@ -69,11 +70,11 @@ public class ShowChannelSettingsHandler(
                 """;
         }
 
-        await using var stream = imageService.GetImageStream("add_channel.jpg");
+        await using var stream = imageService.GetImageStream("summy_settings.jpg");
 
         await bot.ReactivelySendPhotoAsync(
                 chatId,
-                photo: stream,
+                photo: new InputFileStream(stream),
                 caption: text,
                 replyMarkup: new InlineKeyboardMarkup(keyboard)
         );

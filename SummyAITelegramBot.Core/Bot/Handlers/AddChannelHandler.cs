@@ -199,7 +199,7 @@ public class AddChannelHandler(
             <b> *В базовом тарифе можно добавить до 5 каналов 📢</b>
             """;
 
-        await using var stream = imageService.GetImageStream("add_channel.jpg");
+        await using var stream = imageService.GetImageStream("summy_complete.jpg");
 
         await bot.ReactivelySendPhotoAsync(
             chatId,
@@ -259,7 +259,7 @@ public class AddChannelHandler(
                 <b> *В базовом тарифе можно добавить до 5 каналов 📢</b>
                 """;
 
-        await using var stream = imageService.GetImageStream("add_channel.jpg");
+        await using var stream = imageService.GetImageStream("summy_settings.jpg");
 
         await bot.ReactivelySendPhotoAsync(
             message.Chat.Id,
