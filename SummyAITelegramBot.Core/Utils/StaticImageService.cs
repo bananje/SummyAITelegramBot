@@ -12,10 +12,10 @@ public class StaticImageService : IStaticImageService
         _webRootPath = env.WebRootPath;
     }
 
-    public Stream GetImageStream(string fileName)
+    public Stream GetImageStream(string fileName, string? dirName = "images")
     {
-        var fullPath = Path.Combine(_webRootPath, "images", fileName);
-        var defaultPath = Path.Combine(_webRootPath, "images", "summy_start.png");
+        var fullPath = Path.Combine(_webRootPath, dirName, fileName);
+        var defaultPath = Path.Combine(_webRootPath, dirName, "summy_start.png");
 
         if (!File.Exists(fullPath))
         {
@@ -23,5 +23,25 @@ public class StaticImageService : IStaticImageService
         }
 
         return new FileStream(fullPath, FileMode.Open, FileAccess.Read);
+    }
+
+    public void DeleteImage(string fileName, string dirName)
+    {
+        if (fileName is null) { return; }
+
+        var fullPath = Path.Combine(_webRootPath, dirName, fileName);
+
+        if (File.Exists(fullPath))
+        {
+            try
+            {
+                File.Delete(fullPath);
+            }
+            catch (Exception ex)
+            {
+                // Здесь можно логгировать или пробросить исключение
+                Console.WriteLine($"Ошибка при удалении файла: {fullPath} — {ex.Message}");
+            }
+        }
     }
 }

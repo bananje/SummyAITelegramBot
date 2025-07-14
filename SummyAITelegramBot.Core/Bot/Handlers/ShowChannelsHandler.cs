@@ -21,7 +21,7 @@ public class ShowChannelsPaginatedHandler(
     public async Task HandleAsync(Update update)
     {
         var (userId, chatId) = GetUserAndChatId(update);
-        var offset = GetOffsetFromUpdate(update); 
+        var offset = GetOffsetFromUpdate(update);
 
         var user = await _userRepository.GetIQueryable()
             .Where(u => u.Id == userId)
@@ -30,7 +30,6 @@ public class ShowChannelsPaginatedHandler(
                 ?? throw new Exception($"Пользователь {userId} не найден.");
 
         var totalChannels = user.Channels.Count;
-
 
         if (totalChannels == 0)
         {
@@ -42,17 +41,14 @@ public class ShowChannelsPaginatedHandler(
 
             var addChannelButton = new InlineKeyboardMarkup(new[]
             {
-            new[]
-            {
-                InlineKeyboardButton.WithCallbackData("➕ Добавить канал", "/add")
-            }
-        });
+                new[] { InlineKeyboardButton.WithCallbackData("➕ Добавить канал", "/add") }
+            });
 
-            await using var stream1 = staticImageService.GetImageStream("summy_delete.jpg");
+            await using var emptyStream = staticImageService.GetImageStream("summy_delete.jpg");
 
             await bot.ReactivelySendPhotoAsync(
                 chatId,
-                new InputFileStream(stream1),
+                new InputFileStream(emptyStream),
                 noChannelsText,
                 replyMarkup: addChannelButton,
                 userMessage: update.CallbackQuery?.Message ?? update.Message
@@ -69,40 +65,52 @@ public class ShowChannelsPaginatedHandler(
         var buttons = paginatedChannels
             .Select(c => new List<InlineKeyboardButton>
             {
-                 InlineKeyboardButton.WithCallbackData(c.Title ?? c.Link, $"/deletechannel:{c.Id}")
+                InlineKeyboardButton.WithCallbackData(c.Title ?? c.Link, $"/deletechannel:{c.Id}")
             })
             .ToList();
 
         // Кнопки навигации
-        var navigationButtons = new List<InlineKeyboardButton>();
+        var hasPrev = offset > 0;
+        var hasNext = offset + PageSize < totalChannels;
 
-        if (offset > 0)
+        if (hasPrev && hasNext)
         {
-            var backOffset = Math.Max(0, offset - PageSize);
-            navigationButtons.Add(InlineKeyboardButton.WithCallbackData("⬅️ Назад", $"/mychannels:{backOffset}"));
+            buttons.Add(new List<InlineKeyboardButton>
+            {
+                InlineKeyboardButton.WithCallbackData("🦉 Личный кабинет", "/account"),
+                InlineKeyboardButton.WithCallbackData("⬅️ Назад", $"/mychannels:{offset - PageSize}"),
+                InlineKeyboardButton.WithCallbackData("➡️ Далее", $"/mychannels:{offset + PageSize}")
+            });
         }
-
-        if (offset + PageSize < totalChannels)
+        else if (hasPrev)
         {
-            navigationButtons.Add(InlineKeyboardButton.WithCallbackData("➡️ Далее", $"/mychannels:{offset + PageSize}"));
+            buttons.Add(new List<InlineKeyboardButton>
+            {
+                InlineKeyboardButton.WithCallbackData("🦉 Личный кабинет", "/account"),
+                InlineKeyboardButton.WithCallbackData("⬅️ Назад", $"/mychannels:{offset - PageSize}")
+            });
         }
-
-        if (navigationButtons.Count > 0)
+        else if (hasNext)
         {
-            buttons.Add(navigationButtons);
+            buttons.Add(new List<InlineKeyboardButton>
+            {
+                InlineKeyboardButton.WithCallbackData("🦉 Личный кабинет", "/account"),
+                InlineKeyboardButton.WithCallbackData("➡️ Далее", $"/mychannels:{offset + PageSize}")
+            });
         }
-
-        // Личный кабинет
-        buttons.Add(new List<InlineKeyboardButton>
+        else
         {
-            InlineKeyboardButton.WithCallbackData("🦉 Личный кабинет", $"account")
-        });
+            buttons.Add(new List<InlineKeyboardButton>
+            {
+                InlineKeyboardButton.WithCallbackData("🦉 Личный кабинет", "/account")
+            });
+        }
 
         var text = "<b>📢 Ваши каналы:</b>\n\nНажмите на канал, чтобы удалить его.";
-
         var markup = new InlineKeyboardMarkup(buttons);
 
         await using var stream = staticImageService.GetImageStream("summy_delete.jpg");
+
         await bot.ReactivelySendPhotoAsync(
             chatId,
             caption: text,

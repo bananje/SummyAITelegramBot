@@ -54,8 +54,8 @@ public class ShowSubscriptionPlansHandler(
         {
             new List<InlineKeyboardButton>
             {
-                InlineKeyboardButton.WithCallbackData("199р. /меc", "/pay"),
-                InlineKeyboardButton.WithCallbackData("1500р. навсегда", "/pay")
+                InlineKeyboardButton.WithCallbackData("199р/меc", "/pay"),
+                InlineKeyboardButton.WithCallbackData("1500р/навсегда", "/pay")
             }
         };
 
@@ -72,7 +72,7 @@ public class ShowSubscriptionPlansHandler(
         {
             keyboardButtons.Add(new List<InlineKeyboardButton>
             {
-                InlineKeyboardButton.WithCallbackData("Личный кабинет", "/account")
+                InlineKeyboardButton.WithCallbackData("🦉 Личный кабинет", "/account")
             });
         }
 
@@ -84,7 +84,7 @@ public class ShowSubscriptionPlansHandler(
             Сова Summy приподнесёт небольшой подарок❤️</b>
             """;
 
-        await using var stream = imageService.GetImageStream("add_channel.jpg");
+        await using var stream = imageService.GetImageStream("summy_sub.jpg");
 
         await bot.ReactivelySendPhotoAsync(
             chatId,
@@ -101,7 +101,7 @@ public class ShowSubscriptionPlansHandler(
         {
             new List<InlineKeyboardButton>
             {
-                InlineKeyboardButton.WithCallbackData("1500р. навсегда", "/PAY"),
+                InlineKeyboardButton.WithCallbackData("1500р/навсегда", "/PAY"),
             }
         });
 
@@ -118,7 +118,7 @@ public class ShowSubscriptionPlansHandler(
             Сова Summy приподнесёт небольшой подарок❤️</b>
             """;
 
-        await using var stream = imageService.GetImageStream("add_channel.jpg");
+        await using var stream = imageService.GetImageStream("summy_sub.jpg");
 
         await bot.ReactivelySendPhotoAsync(
             chatId,
@@ -135,7 +135,7 @@ public class ShowSubscriptionPlansHandler(
         {
             new List<InlineKeyboardButton>
             {
-                InlineKeyboardButton.WithCallbackData("Каналы📣", $""),
+                InlineKeyboardButton.WithCallbackData("Каналы 📣", $""),
             }
         });
 
@@ -146,7 +146,7 @@ public class ShowSubscriptionPlansHandler(
             Спасибо за поддержку Совы Summy ❤️
             """;
 
-        await using var stream = imageService.GetImageStream("add_channel.jpg");
+        await using var stream = imageService.GetImageStream("summy_sub.jpg");
 
         await bot.ReactivelySendPhotoAsync(
             chatId,

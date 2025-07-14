@@ -62,6 +62,7 @@ var builder = WebApplication.CreateBuilder(args);
     builder.Services.AddScoped<ITelegramUpdateFactory, TelegramUpdateFactory>();
 
     builder.Services.AddScoped<IStaticImageService, StaticImageService>();
+    builder.Services.AddScoped<IMediaCacheService, TelegramMediaCacheService>();
 
     builder.Services.AddScoped<IUserService, UserService>();
     builder.Services.AddScoped(typeof(IRepository<,>), typeof(GenericRepository<,>));

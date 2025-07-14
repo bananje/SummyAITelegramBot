@@ -1,11 +1,10 @@
-﻿using Microsoft.Extensions.Hosting;
-using WTelegram;
+﻿using WTelegram;
 using TL;
 using SummyAITelegramBot.Core.Bot.Features.Channel.DTO;
 using SummyAITelegramBot.Core.Commands;
 using SummyAITelegramBot.Core.Domain.Enums;
 using MediatR;
-using Microsoft.Extensions.DependencyInjection;
+using SummyAITelegramBot.Core.Bot.Abstractions;
 
 namespace SummyAITelegramBot.API.Jobs;
 
@@ -19,7 +18,8 @@ public class ChannelMonitoringService : BackgroundService
     private DateTime _date;
     private DateTime _startTimeUtc;
 
-    public ChannelMonitoringService(Client client, IServiceProvider serviceProvider)
+    public ChannelMonitoringService(
+        Client client, IServiceProvider serviceProvider)
     {
         _client = client;
         _serviceProvider = serviceProvider;
@@ -67,7 +67,7 @@ public class ChannelMonitoringService : BackgroundService
                 if (msg.Date.ToUniversalTime() < _startTimeUtc)
                     return;
 
-                await Process(msg.id, msg.message, peer.channel_id, msg.Date, EntityAction.Create);
+                await Process(msg, msg.id, msg.message, peer.channel_id, msg.Date, EntityAction.Create);
                 break;
 
             case UpdateEditChannelMessage enm when enm.message is Message edited && edited.peer_id is PeerChannel peerEdit:
@@ -75,13 +75,18 @@ public class ChannelMonitoringService : BackgroundService
                 if (editDate < _startTimeUtc)
                     return;
 
-                await Process(edited.id, edited.message, peerEdit.channel_id, edited.edit_date, EntityAction.Update);
+                await Process(edited, edited.id, edited.message, peerEdit.channel_id, edited.edit_date, EntityAction.Update);
                 break;
         }
     }
 
-    private async Task Process(int id, string text, long channelId, DateTime timeUtc, EntityAction action)
+    private async Task Process(Message message, int id, string text, long channelId, DateTime timeUtc, EntityAction action)
     {
+        using var scope = _serviceProvider.CreateScope();
+
+        var mediaCacheService = scope.ServiceProvider.GetRequiredService<IMediaCacheService>();
+        var mediaPath = await mediaCacheService.SaveMediaAsync(message);
+
         var dto = new ChannelPostDto
         {
             Id = id,
@@ -92,10 +97,10 @@ public class ChannelMonitoringService : BackgroundService
                 : default,
             UpdatedAt = action == EntityAction.Update
                 ? DateTime.SpecifyKind(timeUtc, DateTimeKind.Utc)
-                : null
+                : null,
+            MediaPath = mediaPath
         };
 
-        using var scope = _serviceProvider.CreateScope();
         var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
         await mediator.Send(new ProcessTelegramChannelPostCommand(dto, action));
     }

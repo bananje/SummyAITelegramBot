@@ -4,10 +4,7 @@ using SummyAITelegramBot.Core.Bot.Features.Channel.Abstractions;
 using SummyAITelegramBot.Core.Bot.Features.Channel.DTO;
 using SummyAITelegramBot.Core.Domain.Models;
 using SummyAITelegramBot.Infrastructure.Context;
-using static Dapper.SqlMapper;
-using System.Threading;
 using ChannelEn = SummyAITelegramBot.Core.Domain.Models.Channel;
-
 
 namespace SummyAITelegramBot.Core.Bot.Features.Channel.Services;
 
@@ -26,7 +23,8 @@ public class PostService(IUnitOfWork unitOfWork, AppDbContext context) : IPostSe
             Id = postDto.Id,
             ChannelId = postDto.ChannelId,
             CreatedDate = postDto.CreatedAt,
-            Text = postDto.Text
+            Text = postDto.Text,
+            MediaPath = postDto.MediaPath
         };
 
         var entry = await context.Set<ChannelPost>().

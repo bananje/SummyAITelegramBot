@@ -1,4 +1,5 @@
 ﻿using MediatR;
+using SummyAITelegramBot.Core.Abstractions;
 using SummyAITelegramBot.Core.AI.Abstractions;
 using SummyAITelegramBot.Core.Bot.Features.Channel.Abstractions;
 using SummyAITelegramBot.Core.Bot.Features.Channel.DTO;
@@ -11,6 +12,7 @@ public record ProcessTelegramChannelPostCommand(ChannelPostDto Post, EntityActio
 public class ProcessTelegramChannelPostCommandHandler(
     IPostService postService,
     ISummarizationStrategyFactory aiFactory,
+    IStaticImageService staticImageService,
     ITelegramSenderService tgSender) : IRequestHandler<ProcessTelegramChannelPostCommand>
 {
     public async Task Handle(ProcessTelegramChannelPostCommand request, CancellationToken cancellationToken)
@@ -33,6 +35,8 @@ public class ProcessTelegramChannelPostCommandHandler(
         var post = action is EntityAction.Create ? await postService.AddPostAsync(request.Post) 
             : await postService.UpdatePostAsync(request.Post);
       
-        await tgSender.ResolveNotifyUsersAsync(post);            
+        await tgSender.ResolveNotifyUsersAsync(post);
+
+        staticImageService.DeleteImage(post.MediaPath, "media_cache");
     }
 }

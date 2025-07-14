@@ -48,7 +48,7 @@ public class StartCommandHandler(
                 (КНОПКА "💪Полетели дальше!")
                 """;
 
-            imagePath = "summy_start.png";
+            imagePath = "summy_start.jpg";
         }
 
         await userService.UpdateOrCreateUserByTelegramAsync(message.From.Id, message);

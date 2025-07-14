@@ -7,6 +7,7 @@ using SummyAITelegramBot.Core.Domain.Enums;
 using SummyAITelegramBot.Core.Domain.Models;
 using System.Text;
 using Telegram.Bot;
+using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
 using UserEn = SummyAITelegramBot.Core.Domain.Models.User;
@@ -16,6 +17,7 @@ namespace SummyAITelegramBot.Core.Bot.Features.Channel.Services;
 public class TelegramSenderService(
     ITelegramBotClient telegramBotClient,
     ISummarizationStrategyFactory aiFactory,
+    IStaticImageService imageService,
     IUnitOfWork unitOfWork) : ITelegramSenderService
 {
     public async Task ResolveNotifyUsersAsync(ChannelPost post)
@@ -45,7 +47,14 @@ public class TelegramSenderService(
                 if (recentPosts.Count == 0)
                 {
                     var messageText = FormatInstantSummary(post);
-                    await telegramBotClient.SendMessage(chatId: user.Id, text: messageText, parseMode: ParseMode.Html, linkPreviewOptions: true);
+
+                    await using var stream = imageService.GetImageStream(post.MediaPath, "media_cache");
+
+                    await telegramBotClient.SendPhoto(
+                        chatId: user.Id,
+                        photo: new InputFileStream(stream),
+                        caption: messageText,
+                        parseMode: ParseMode.Html);
 
                     await sentPostsRepo.AddAsync(new SentUserPost
                     {
@@ -70,7 +79,13 @@ public class TelegramSenderService(
                 {
                     var messageText = FormatInstantSummary(post);
 
-                    await telegramBotClient.SendMessage(chatId: user.Id, text: messageText, parseMode: ParseMode.Html, linkPreviewOptions: true);
+                    await using var stream = imageService.GetImageStream(post.MediaPath, "media_cache");
+
+                    await telegramBotClient.SendPhoto(
+                        chatId: user.Id, 
+                        caption: messageText,
+                        parseMode: ParseMode.Html,
+                        photo: new InputFileStream(stream));
 
                     await sentPostsRepo.AddAsync(new SentUserPost
                     {

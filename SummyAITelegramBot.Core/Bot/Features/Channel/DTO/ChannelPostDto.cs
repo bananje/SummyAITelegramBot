@@ -11,4 +11,6 @@ public record ChannelPostDto
     public DateTime? UpdatedAt { get; set; }
 
     public long ChannelId { get; set; }
+
+    public string? MediaPath { get; set; }
 }

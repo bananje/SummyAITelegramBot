@@ -12,6 +12,7 @@ using SummyAITelegramBot.Core.Bot.Attributes;
 using SummyAITelegramBot.Core.Bot.Extensions;
 using SummyAITelegramBot.Core.Domain.Models;
 using SummyAITelegramBot.Core.Bot.Utils;
+using System.Collections.Generic;
 
 namespace SummyAITelegramBot.Core.Bot.Handlers;
 
@@ -250,6 +251,13 @@ public class AddChannelHandler(
             : update.Message;
 
 
+        var buttons = new List<List<InlineKeyboardButton>>
+        {
+             new() { InlineKeyboardButton.WithCallbackData("🦉 Личный кабинет", "/account") }
+        };
+
+        var keyboard = new InlineKeyboardMarkup(buttons);
+
         var text = $"""
                 1️⃣ <b>Добавьте Ваши каналы</b>
 
@@ -263,6 +271,7 @@ public class AddChannelHandler(
 
         await bot.ReactivelySendPhotoAsync(
             message.Chat.Id,
+            replyMarkup: keyboard,
             photo: new InputFileStream(stream),
             userMessage: update.Message,
             caption: text

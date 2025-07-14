@@ -21,4 +21,8 @@
     <ProjectReference Include="..\SummyAITelegramBot.Core\SummyAITelegramBot.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="wwwroot\media_cache\" />
+  </ItemGroup>
+
 </Project>

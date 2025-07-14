@@ -12,6 +12,7 @@ namespace SummyAITelegramBot.Core.Bot.Handlers;
 public class GroupedPostsHandler(
     ITelegramBotClient bot, 
     IUnitOfWork unitOfWork, 
+    IStaticImageService imageService,
     ISummarizationStrategyFactory summarizationStrategyFactory) : ITelegramUpdateHandler
 {
     public async Task HandleAsync(Update update)
@@ -20,7 +21,11 @@ public class GroupedPostsHandler(
         var pageStr = data?.Split(':').LastOrDefault();
         if (int.TryParse(pageStr, out var page))
         {
-            var sender = new TelegramSenderService(bot, summarizationStrategyFactory, unitOfWork);
+            var sender = new TelegramSenderService(
+                bot, 
+                summarizationStrategyFactory, 
+                imageService, unitOfWork);
+
             await sender.SendGroupedPostsAsync(update.CallbackQuery.From.Id, page);
         }
     }
