@@ -7,6 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Cronos" Version="0.11.0" />
     <PackageReference Include="ErrorOr" Version="2.0.1" />
     <PackageReference Include="FluentResults" Version="3.16.0" />
     <PackageReference Include="Hangfire" Version="1.8.20" />
@@ -31,10 +32,6 @@
     <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
     <PackageReference Include="Telegram.Bot" Version="22.5.1" />
     <PackageReference Include="WTelegramClient" Version="4.3.5" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Bot\Features\Channel\Handlers\" />
   </ItemGroup>
 
 </Project>

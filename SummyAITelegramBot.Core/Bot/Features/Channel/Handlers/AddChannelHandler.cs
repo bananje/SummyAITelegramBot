@@ -14,7 +14,7 @@ using SummyAITelegramBot.Core.Domain.Models;
 using SummyAITelegramBot.Core.Bot.Utils;
 using System.Collections.Generic;
 
-namespace SummyAITelegramBot.Core.Bot.Handlers;
+namespace SummyAITelegramBot.Core.Bot.Features.Channel.Handlers;
 
 [TelegramUpdateHandler("/add")]
 public class AddChannelHandler(
@@ -120,7 +120,7 @@ public class AddChannelHandler(
 
             await SendAddedChannelEventMessageAsync(update, text);
             return;
-        }    
+        }
 
         if (user.Channels.Any(u => u.Id == channelInfo.id))
         {
@@ -133,7 +133,7 @@ public class AddChannelHandler(
         }
 
         user.AddChannel(channel);
-        await _unitOfWork.CommitAsync(); 
+        await _unitOfWork.CommitAsync();
 
         var completeHeader = $"""
                 ✅ <b>Канал успешно добавлен</b>
@@ -185,7 +185,7 @@ public class AddChannelHandler(
             ? $"""
                Добавлено каналов:
 
-               {string.Join(Environment.NewLine, channels.Select(ch => $"📢 <a href=\"https://t.me/{ExtractUsername(ch.Link)}\">{(ch.Title)}</a>"))}
+               {string.Join(Environment.NewLine, channels.Select(ch => $"📢 <a href=\"https://t.me/{ExtractUsername(ch.Link)}\">{ch.Title}</a>"))}
                ...
                """
             : "Каналов пока нет.";
@@ -200,11 +200,11 @@ public class AddChannelHandler(
             <b> *В базовом тарифе можно добавить до 5 каналов 📢</b>
             """;
 
-        await using var stream = imageService.GetImageStream("summy_complete.jpg");
+        var stream = imageService.GetImageStream("summy_complete.jpg");
 
         await bot.ReactivelySendPhotoAsync(
             chatId,
-            photo: new InputFileStream(stream),
+            photo: stream,
             userMessage: update.Message,
             caption: text,
             replyMarkup: keyboard
@@ -246,7 +246,7 @@ public class AddChannelHandler(
 
     private async Task SendWelcomeText(Update update)
     {
-        var message = update.Message is null 
+        var message = update.Message is null
             ? update.CallbackQuery.Message
             : update.Message;
 
@@ -267,12 +267,12 @@ public class AddChannelHandler(
                 <b> *В базовом тарифе можно добавить до 5 каналов 📢</b>
                 """;
 
-        await using var stream = imageService.GetImageStream("summy_settings.jpg");
+        var stream = imageService.GetImageStream("summy_settings.jpg");
 
         await bot.ReactivelySendPhotoAsync(
             message.Chat.Id,
             replyMarkup: keyboard,
-            photo: new InputFileStream(stream),
+            photo: stream,
             userMessage: update.Message,
             caption: text
         );

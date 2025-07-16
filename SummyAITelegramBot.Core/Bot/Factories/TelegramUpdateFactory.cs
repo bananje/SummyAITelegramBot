@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
+using Serilog;
 using SummyAITelegramBot.Core.Abstractions;
 using SummyAITelegramBot.Core.Bot.Abstractions;
 using SummyAITelegramBot.Core.Bot.Attributes;
@@ -41,22 +42,26 @@ public class TelegramUpdateFactory : ITelegramUpdateFactory
         using var scope = _scopeFactory.CreateScope();
 
         // Найти тип обработчика с нужным атрибутом
-        var handlerType = AppDomain.CurrentDomain
-            .GetAssemblies()
-            .SelectMany(x => x.GetTypes())
-            .Where(t => typeof(ITelegramUpdateHandler).IsAssignableFrom(t) && !t.IsInterface && !t.IsAbstract)
-            .FirstOrDefault(t =>
-            {
-                var attr = t.GetCustomAttribute<TelegramUpdateHandlerAttribute>();
-                return attr != null && attr.Prefix == prefix;
-            });
+        var handlerType = GetHandler(prefix);
 
         if (handlerType != null)
         {
-            var handler = (ITelegramUpdateHandler)scope.ServiceProvider.GetRequiredService(handlerType);
-            await handler.HandleAsync(query);
+            try
+            {
+                var handler = (ITelegramUpdateHandler)scope.ServiceProvider.GetRequiredService(handlerType);
+                await handler.HandleAsync(query);
 
-            _commandCache.SetLastCommand(userId, prefix);
+                _commandCache.SetLastCommand(userId, prefix);
+            }
+            catch (Exception ex)
+            {
+                var startHandler = GetHandler("/start");
+
+                var handler = (ITelegramUpdateHandler)scope.ServiceProvider.GetRequiredService(startHandler);
+                await handler.HandleAsync(query);
+
+                Log.Error(ex, ex.Message);
+            }
         }
         else
         {
@@ -71,7 +76,7 @@ public class TelegramUpdateFactory : ITelegramUpdateFactory
 
             *Проверьте ссылку или команду и отправьте снова
             """;
-            await using var failStream = _imageService.GetImageStream("add_channel.jpg");
+            var failStream = _imageService.GetImageStream("add_channel.jpg");
 
             var keyboard = new InlineKeyboardMarkup(new[]
             {
@@ -80,11 +85,26 @@ public class TelegramUpdateFactory : ITelegramUpdateFactory
 
             await _bot.ReactivelySendPhotoAsync(
                 message.Chat.Id,
-                photo: new InputFileStream(failStream),
+                photo: failStream,
                 userMessage: query.Message,
                 replyMarkup: keyboard,
                 caption: text
             );
         }
+    }
+
+    private Type? GetHandler(string prefix)
+    {
+        var handlerType = AppDomain.CurrentDomain
+            .GetAssemblies()
+            .SelectMany(x => x.GetTypes())
+            .Where(t => typeof(ITelegramUpdateHandler).IsAssignableFrom(t) && !t.IsInterface && !t.IsAbstract)
+            .FirstOrDefault(t =>
+            {
+                var attr = t.GetCustomAttribute<TelegramUpdateHandlerAttribute>();
+                return attr != null && attr.Prefix == prefix;
+            });
+
+        return handlerType;
     }
 }

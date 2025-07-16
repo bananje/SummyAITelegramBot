@@ -39,6 +39,8 @@ public class NotificationTimeSettingHandler(
             if (timeStr == "realtime")
             {
                 userSettings.InstantlyTimeNotification = true;
+                userSettings.NotificationTime = null;
+                userSettings.TimeZoneId = null;
 
                 await settingsRepostitory.CreateOrUpdateAsync(userSettings);
 
@@ -57,7 +59,9 @@ public class NotificationTimeSettingHandler(
                 return;
             }
 
+            await settingsRepostitory.CreateOrUpdateAsync(userSettings);
             await unitOfWork.CommitAsync();
+
             await telegramUpdateFactory.DispatchAsync(update, "/showtimezonesettings");
         }
     }

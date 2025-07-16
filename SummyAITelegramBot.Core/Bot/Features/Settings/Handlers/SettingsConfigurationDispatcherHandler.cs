@@ -29,15 +29,15 @@ public class SettingsConfigurationDispatcherHandler(
                 return;
             }
 
-            if (settingCommand == "clear-create")
-            {
-                var userSettings = await settingsRepostitory
-                    .GetIQueryable()
-                    .FirstOrDefaultAsync(u => u.UserId == query.Message.Chat.Id);
+            //if (settingCommand == "clear-create")
+            //{
+            //    var userSettings = await settingsRepostitory
+            //        .GetIQueryable()
+            //        .FirstOrDefaultAsync(u => u.UserId == query.Message.Chat.Id);
 
-                await settingsRepostitory.RemoveAsync(userSettings.Id);
-                await unitOfWork.CommitAsync();
-            }
+            //    await settingsRepostitory.RemoveAsync(userSettings.Id);
+            //    await unitOfWork.CommitAsync();
+            //}
 
             await telegramUpdateFactory.DispatchAsync(update, "/shownotificationtimesettings");
             return;

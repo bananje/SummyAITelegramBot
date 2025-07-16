@@ -44,12 +44,12 @@ public class ShowNotificationTimeSettingsHandler(
                 .ToList());
         }
 
-        await using var stream = staticImageService.GetImageStream("summy_time.jpg");
+        var stream = staticImageService.GetImageStream("summy_time.jpg");
 
         await bot.ReactivelySendPhotoAsync(
             chatId,
             caption: text,
-            photo: new InputFileStream(stream),
+            photo: stream,
             replyMarkup: new InlineKeyboardMarkup(keyboard));
     }
 }

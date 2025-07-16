@@ -30,7 +30,7 @@ public class DeepSeekSummarizationStrategy : ISummarizationStrategy
             messages = new[]
                 {
                     new { role = "system", content = contextRole },
-                    new { role = "user", content = $"{promt} Сделай короткую сводку следующего текста:\n\n{inputText}" }
+                    new { role = "user", content = $"{promt} Сделай короткую сводку следующего текста: {inputText}" }
                 }
         };
 
@@ -159,7 +159,7 @@ public class DeepSeekSummarizationStrategy : ISummarizationStrategy
             messages = new[]
             {
             new { role = "system", content = prompt },
-            new { role = "user", content = $"Проанализируй данный текст и дай ответ true - если пост БЕЗ рекламы и подходит для сводки.\r\n*  false - если пост содержит ЛЮБЫЕ признаки рекламы/коммерции. {inputText}" }
+            new { role = "user", content = $"{prompt}. \n Вот текст поста: {inputText}" }
         }
         };
 

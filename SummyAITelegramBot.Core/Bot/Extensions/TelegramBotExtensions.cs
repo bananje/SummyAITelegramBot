@@ -91,18 +91,18 @@ public static class TelegramBotClientExtensions
     }
 
     public static async Task ReactivelySendPhotoAsync(
-        this ITelegramBotClient bot,
-        long chatId,
-        InputFileStream photo,
-        string? caption = null,
-        Message? userMessage = null,
-        InlineKeyboardMarkup? replyMarkup = null,
-        CancellationToken cancellationToken = default)
+    this ITelegramBotClient bot,
+    long chatId,
+    Stream photo,
+    string? caption = null,
+    Message? userMessage = null,
+    InlineKeyboardMarkup? replyMarkup = null,
+    CancellationToken cancellationToken = default)
     {
         try
         {
             // Удаляем сообщение пользователя
-            if (userMessage is not null && userMessage is { From.IsBot: false })
+            if (userMessage is { From.IsBot: false })
             {
                 try
                 {
@@ -111,16 +111,23 @@ public static class TelegramBotClientExtensions
                 catch { /* игнор */ }
             }
 
+            // Копируем оригинальный поток в память (на случай повторного использования)
+            using var memoryStream = new MemoryStream();
+            await photo.CopyToAsync(memoryStream, cancellationToken);
+            memoryStream.Position = 0;
+
             if (_cache.TryGetValue(chatId, out CachedBotMessage? previous))
             {
                 if (previous?.Type == MessageType.Photo)
                 {
                     try
                     {
+                        var editStream = new MemoryStream(memoryStream.ToArray());
+
                         await bot.EditMessageMedia(
                             chatId: chatId,
                             messageId: previous.MessageId,
-                            media: new InputMediaPhoto(photo)
+                            media: new InputMediaPhoto(new InputFileStream(editStream))
                             {
                                 Caption = caption,
                                 ParseMode = ParseMode.Html
@@ -132,7 +139,7 @@ public static class TelegramBotClientExtensions
                     }
                     catch (ApiRequestException ex) when (ex.ErrorCode is 400 or 403)
                     {
-                        // не удалось редактировать
+                        // не удалось редактировать, удалим
                     }
                 }
 
@@ -143,9 +150,13 @@ public static class TelegramBotClientExtensions
                 catch { /* игнор */ }
             }
 
+            // Отправка нового фото
+            memoryStream.Position = 0;
+            var sendStream = new MemoryStream(memoryStream.ToArray());
+
             var sent = await bot.SendPhoto(
                 chatId,
-                photo,
+                new InputFileStream(sendStream),
                 caption: caption,
                 parseMode: ParseMode.Html,
                 replyMarkup: replyMarkup,
@@ -159,9 +170,10 @@ public static class TelegramBotClientExtensions
         }
         catch (Exception ex)
         {
-            Log.Logger.Error(ex.Message);
-        }   
+            Log.Logger.Error(ex, ex.Message);
+        }
     }
+
 
     private class CachedBotMessage
     {

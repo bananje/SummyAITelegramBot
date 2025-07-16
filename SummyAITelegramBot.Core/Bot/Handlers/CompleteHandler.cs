@@ -33,10 +33,10 @@ public class CompleteHandler(
              new[] { InlineKeyboardButton.WithCallbackData("🦉 Личный кабинет", "/account") },
         });
 
-        await using var stream = imageService.GetImageStream(imagePath);
+        var stream = imageService.GetImageStream(imagePath);
         await bot.ReactivelySendPhotoAsync(
             userId,
-            photo: new InputFileStream(stream),
+            photo: stream,
             userMessage: message,
             caption: text,
             replyMarkup: keyboard

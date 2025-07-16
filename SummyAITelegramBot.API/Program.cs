@@ -22,7 +22,7 @@ using SummyAITelegramBot.Core.Commands;
 using SummyAITelegramBot.Core.Utils.Repository;
 using SummyAITelegramBot.API.Jobs;
 using SummyAITelegramBot.Core.Bot.Utils;
-using TL;
+using SummyAITelegramBot.Core.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 {
@@ -93,21 +93,23 @@ var builder = WebApplication.CreateBuilder(args);
         client.DefaultRequestHeaders.Add("X-Title", "SummyAI");
     });
 
-    // Добавляем Hangfire + PostgreSQL
+    // Конфигурируем Hangfire с PostgreSQL
     builder.Services.AddHangfire(config =>
     {
         config.SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
               .UseSimpleAssemblyNameTypeSerializer()
               .UseRecommendedSerializerSettings()
-              .UsePostgreSqlStorage(builder.Configuration.GetConnectionString("DefaultConnection"));
+              .UsePostgreSqlStorage(builder.Configuration.GetConnectionString("DefaultConnection"), 
+                                    new PostgreSqlStorageOptions { SchemaName = "hangfire" });
     });
 
-    builder.Services.AddHangfireServer(); // Добавляет фоновые процессы
+    // Запускаем фоновые процессы Hangfire
+    builder.Services.AddHangfireServer();
     builder.Services.AddMediatR(cfg =>
     {
         cfg.RegisterServicesFromAssembly(typeof(ProcessTelegramChannelPostCommandHandler).Assembly);
     });
-    builder.Services.AddHostedService<ChannelMonitoringService>();
+    builder.Services.AddHostedService<ChannelMonitoringWorker>();
     builder.Services.AddSingleton<IUserCommandCache, UserCommandCache>();
     builder.Services.AddSingleton<WTelegram.Client>(provider =>
     {
@@ -124,18 +126,26 @@ var builder = WebApplication.CreateBuilder(args);
         return new WTelegram.Client(Config);
     });
 
+    builder.Services.AddScoped<CleanerService>();
+    builder.Services.AddScoped<HangfireSchedulerService>();
     builder.Services.AddScoped<IPostService, PostService>();
     builder.Services.AddScoped<ITelegramSenderService, TelegramSenderService>();
     builder.Services.Configure<ForwardedHeadersOptions>(options =>
     {
         options.ForwardedHeaders =
             ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
-    });    
+    });
 }
 
 var app = builder.Build();
 {
     app.UseHttpsRedirection();
+
+    using (var scope = app.Services.CreateScope())
+    {
+        var scheduler = scope.ServiceProvider.GetRequiredService<HangfireSchedulerService>();
+        scheduler.ScheduleCleanupJob();
+    }
 
     using (var scope = app.Services.CreateScope())
     {
@@ -168,7 +178,9 @@ var app = builder.Build();
     app.UseAuthorization();
     app.UseSerilogRequestLogging();
 
+    app.UseHangfireDashboard("/hangfire");
     app.MapControllers();
     app.UseExceptionHandler();
+
     app.Run();
 }

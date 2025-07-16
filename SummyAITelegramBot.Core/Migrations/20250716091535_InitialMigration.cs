@@ -7,7 +7,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace SummyAITelegramBot.Core.Migrations
 {
     /// <inheritdoc />
-    public partial class AddInitialMigration : Migration
+    public partial class InitialMigration : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -62,7 +62,8 @@ namespace SummyAITelegramBot.Core.Migrations
                     Id = table.Column<int>(type: "integer", nullable: false),
                     ChannelId = table.Column<long>(type: "bigint", nullable: false),
                     Text = table.Column<string>(type: "text", nullable: false),
-                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    MediaPath = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -127,7 +128,7 @@ namespace SummyAITelegramBot.Core.Migrations
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     NotificationTime = table.Column<TimeOnly>(type: "time without time zone", nullable: true),
-                    TimeZoneId = table.Column<string>(type: "text", nullable: false),
+                    TimeZoneId = table.Column<string>(type: "text", nullable: true),
                     InstantlyTimeNotification = table.Column<bool>(type: "boolean", nullable: true),
                     MediaEnabled = table.Column<bool>(type: "boolean", nullable: true),
                     UserId = table.Column<long>(type: "bigint", nullable: false),
@@ -152,8 +153,8 @@ namespace SummyAITelegramBot.Core.Migrations
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     UserId = table.Column<long>(type: "bigint", nullable: false),
                     ChannelId = table.Column<long>(type: "bigint", nullable: false),
-                    ChannelPostId = table.Column<int>(type: "integer", nullable: false),
-                    ChannelPostChannelId = table.Column<long>(type: "bigint", nullable: false)
+                    CreatedDate = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    ChannelPostId = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -161,12 +162,6 @@ namespace SummyAITelegramBot.Core.Migrations
                     table.ForeignKey(
                         name: "FK_DelayedUserPosts_ChannelPosts_ChannelId_ChannelPostId",
                         columns: x => new { x.ChannelId, x.ChannelPostId },
-                        principalTable: "ChannelPosts",
-                        principalColumns: new[] { "ChannelId", "Id" },
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_DelayedUserPosts_ChannelPosts_ChannelPostChannelId_ChannelP~",
-                        columns: x => new { x.ChannelPostChannelId, x.ChannelPostId },
                         principalTable: "ChannelPosts",
                         principalColumns: new[] { "ChannelId", "Id" },
                         onDelete: ReferentialAction.Cascade);
@@ -209,12 +204,6 @@ namespace SummyAITelegramBot.Core.Migrations
                 name: "IX_DelayedUserPosts_ChannelId_ChannelPostId",
                 table: "DelayedUserPosts",
                 columns: new[] { "ChannelId", "ChannelPostId" },
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_DelayedUserPosts_ChannelPostChannelId_ChannelPostId",
-                table: "DelayedUserPosts",
-                columns: new[] { "ChannelPostChannelId", "ChannelPostId" },
                 unique: true);
 
             migrationBuilder.CreateIndex(

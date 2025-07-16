@@ -1,4 +1,5 @@
-﻿using Hangfire;
+﻿using Cronos;
+using Hangfire;
 using Microsoft.EntityFrameworkCore;
 using SummyAITelegramBot.Core.Abstractions;
 using SummyAITelegramBot.Core.AI.Abstractions;
@@ -102,6 +103,7 @@ public class TelegramSenderService(
                 {
                     UserId = user.Id,
                     ChannelId = post.ChannelId,
+                    CreatedDate = DateTime.UtcNow,
                     ChannelPostId = post.Id
                 });
             }
@@ -112,7 +114,7 @@ public class TelegramSenderService(
         // Поставить задачу в Hangfire для пользователей с отложенными сообщениями
         foreach (var user in users.Where(u => !u.ChannelUserSettings.InstantlyTimeNotification.GetValueOrDefault()))
         {
-            ScheduleOrRescheduleRecurringJob(user);
+            ScheduleOneTimeJob(user);
         }
     }
 
@@ -188,25 +190,51 @@ public class TelegramSenderService(
         );
     }
 
-    private void ScheduleOrRescheduleRecurringJob(UserEn user)
+    private void ScheduleOneTimeJob(UserEn user)
     {
-        if (user.ChannelUserSettings.NotificationTime == null)
+        if (user.ChannelUserSettings?.NotificationTime == null)
             return;
 
-        var tzId = user.ChannelUserSettings.TimeZoneId ?? "UTC";
-        var tz = TimeZoneInfo.FindSystemTimeZoneById(tzId);
+        var timeZoneId = user.ChannelUserSettings.TimeZoneId ?? "UTC";
+        TimeZoneInfo timeZone;
 
-        var time = user.ChannelUserSettings.NotificationTime.Value;
-        var cron = Cron.Daily(time.Hour, time.Minute);
+        try
+        {
+            timeZone = TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
+        }
+        catch
+        {
+            timeZone = TimeZoneInfo.Utc;
+        }
 
-        var jobId = $"send_summary_{user.Id}";
+        var notificationTime = user.ChannelUserSettings.NotificationTime.Value;
 
-        // Hangfire сам перезапишет задачу, если AddOrUpdate уже был
-        RecurringJob.AddOrUpdate<TelegramSenderService>(
-            jobId,
+        // Создаем cron-выражение для времени из настроек пользователя (ежедневно)
+        var cronExpression = Cron.Daily(notificationTime.Hour, notificationTime.Minute);
+
+        var cronSchedule = CronExpression.Parse(cronExpression);
+
+        // Текущее время в UTC
+        var utcNow = DateTimeOffset.UtcNow;
+
+        // Получаем следующее время запуска в UTC с учётом cron и часового пояса
+        var nextUtc = cronSchedule.GetNextOccurrence(utcNow, TimeZoneInfo.Utc);
+
+        if (!nextUtc.HasValue)
+            return; // Нет следующего запуска — не ставим задачу
+
+        // Конвертируем следующий запуск в локальное время пользователя
+        var nextRunLocal = TimeZoneInfo.ConvertTime(nextUtc.Value, timeZone);
+
+        // Вычисляем задержку от текущего локального времени
+        var delay = nextRunLocal - DateTimeOffset.Now;
+
+        if (delay < TimeSpan.Zero)
+            delay = TimeSpan.Zero;
+
+        BackgroundJob.Schedule<TelegramSenderService>(
             service => service.SendGroupedPostsAsync(user.Id, 0),
-            cron,
-            timeZone: tz
+            delay
         );
     }
 

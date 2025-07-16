@@ -9,7 +9,7 @@ using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
 
-namespace SummyAITelegramBot.Core.Bot.Handlers;
+namespace SummyAITelegramBot.Core.Bot.Features.Settings.Handlers;
 
 [TelegramUpdateHandler("/showchannelsettings")]
 public class ShowChannelSettingsHandler(
@@ -36,20 +36,20 @@ public class ShowChannelSettingsHandler(
         {
             keyboard.Add(new List<InlineKeyboardButton>
             {
-                InlineKeyboardButton.WithCallbackData("Применить текущее",
+                InlineKeyboardButton.WithCallbackData("✅ Применить текущее",
                     $"{Consts.ChannelSettingsCallbackPrefix}apply"),
             });
 
             keyboard.Add(new List<InlineKeyboardButton>
             {
-                InlineKeyboardButton.WithCallbackData("Поменять время",
+                InlineKeyboardButton.WithCallbackData("⏱️ Поменять время",
                     $"{Consts.ChannelSettingsCallbackPrefix}clear-create")
             });
 
             text = $"""
                     2️⃣ <b>Указываем время получения сводок</b>
 
-                    {(userSettings.InstantlyTimeNotification.HasValue
+                    {(userSettings.InstantlyTimeNotification == true
                         ? "Включена моментальная отправка 🟢"
                         : $"Текущее время: {userSettings.NotificationTime} по {userSettings.TimeZoneId} для получения сводок 🦉")}
                     """;
@@ -70,11 +70,11 @@ public class ShowChannelSettingsHandler(
                 """;
         }
 
-        await using var stream = imageService.GetImageStream("summy_settings.jpg");
+        var stream = imageService.GetImageStream("summy_settings.jpg");
 
         await bot.ReactivelySendPhotoAsync(
                 chatId,
-                photo: new InputFileStream(stream),
+                photo: stream,
                 caption: text,
                 replyMarkup: new InlineKeyboardMarkup(keyboard)
         );

@@ -1,10 +1,10 @@
-﻿using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using SummyAITelegramBot.Core.Abstractions;
 using SummyAITelegramBot.Core.Bot.Abstractions;
 using SummyAITelegramBot.Core.Bot.Attributes;
 using SummyAITelegramBot.Core.Bot.Extensions;
 using SummyAITelegramBot.Core.Bot.Features.User.Abstractions;
+using SummyAITelegramBot.Core.Bot.Utils;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
@@ -24,9 +24,13 @@ public class StartCommandHandler(
 {
     public async Task HandleAsync(Update upd)
     {
-        var message = upd.Message;
+        var message = upd.Message is null ? upd.CallbackQuery.Message
+            : upd.Message;
+
+        var (userId, chatId) = TelegramHelper.GetUserAndChatId(upd);
+
         string text = "";
-        var user = await userRepository.GetByIdAsync(message.From.Id);
+        var user = await userRepository.GetByIdAsync(chatId);
         string imagePath = "";
 
         if (user?.LastInteractionAt is not null)
@@ -45,24 +49,24 @@ public class StartCommandHandler(
                 1️⃣Добавим Ваши каналы
                 2️⃣Укажем время получения постов
 
-                (КНОПКА "💪Полетели дальше!")
+                (КНОПКА "🦉 Полетели дальше")
                 """;
 
             imagePath = "summy_start.jpg";
         }
 
-        await userService.UpdateOrCreateUserByTelegramAsync(message.From.Id, message);
+        await userService.UpdateOrCreateUserByTelegramAsync(upd);
 
         var keyboard = new InlineKeyboardMarkup(new[]
         {
-             new[] { InlineKeyboardButton.WithCallbackData("🚀 Каналы", "/add") },
+             new[] { InlineKeyboardButton.WithCallbackData("🦉 Полетели дальше", "/add") },
         });
 
-        await using var stream = imageService.GetImageStream(imagePath);
+        var stream = imageService.GetImageStream(imagePath);
         await botClient.ReactivelySendPhotoAsync(
-            upd.Message.Chat.Id,
-            photo: new InputFileStream(stream),
-            userMessage: upd.Message,
+            chatId,
+            photo: stream,
+            userMessage: message,
             caption: text,
             replyMarkup: keyboard
         );

@@ -3,12 +3,11 @@ using SummyAITelegramBot.Core.Bot.Abstractions;
 using SummyAITelegramBot.Core.Bot.Attributes;
 using Telegram.Bot.Types;
 using Telegram.Bot;
-using SummyAITelegramBot.Core.Domain.Models;
 using Microsoft.EntityFrameworkCore;
 using SummyAITelegramBot.Core.Bot.Extensions;
 using SummyAITelegramBot.Core.Bot.Utils;
 
-namespace SummyAITelegramBot.Core.Bot.Handlers;
+namespace SummyAITelegramBot.Core.Bot.Features.Channel.Handlers;
 
 [TelegramUpdateHandler("/confirmdelete")]
 public class ConfirmDeleteChannelHandler(
@@ -17,7 +16,7 @@ public class ConfirmDeleteChannelHandler(
     IUnitOfWork unitOfWork) : ITelegramUpdateHandler
 {
     private readonly IRepository<long, Domain.Models.User> _userRepository = unitOfWork.Repository<long, Domain.Models.User>();
-    private readonly IRepository<long, Channel> _channelRepository = unitOfWork.Repository<long, Channel>();
+    private readonly IRepository<long, Domain.Models.Channel> _channelRepository = unitOfWork.Repository<long, Domain.Models.Channel>();
 
     public async Task HandleAsync(Update update)
     {

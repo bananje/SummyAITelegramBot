@@ -1,14 +1,19 @@
-﻿using WTelegram;
-using TL;
+﻿using MediatR;
+using Microsoft.EntityFrameworkCore;
+using SummyAITelegramBot.Core.Bot.Abstractions;
 using SummyAITelegramBot.Core.Bot.Features.Channel.DTO;
 using SummyAITelegramBot.Core.Commands;
 using SummyAITelegramBot.Core.Domain.Enums;
-using MediatR;
-using SummyAITelegramBot.Core.Bot.Abstractions;
+using SummyAITelegramBot.Core.Domain.Models;
+using SummyAITelegramBot.Infrastructure.Context;
+using SummyAITelegramBot.Infrastructure.Persistence;
+using Telegram.Bot.Requests.Abstractions;
+using TL;
+using WTelegram;
 
 namespace SummyAITelegramBot.API.Jobs;
 
-public class ChannelMonitoringService : BackgroundService
+public class ChannelMonitoringWorker : BackgroundService
 {
     private readonly Client _client;
     private readonly IServiceProvider _serviceProvider;
@@ -18,7 +23,7 @@ public class ChannelMonitoringService : BackgroundService
     private DateTime _date;
     private DateTime _startTimeUtc;
 
-    public ChannelMonitoringService(
+    public ChannelMonitoringWorker(
         Client client, IServiceProvider serviceProvider)
     {
         _client = client;
@@ -84,6 +89,13 @@ public class ChannelMonitoringService : BackgroundService
     {
         using var scope = _serviceProvider.CreateScope();
 
+        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        var channel = await dbContext.Set<Core.Domain.Models.Channel>()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Id == channelId)
+                    ?? throw new Exception($"В системе не зарегистриван канал с ID: {channelId}");
+
         var mediaCacheService = scope.ServiceProvider.GetRequiredService<IMediaCacheService>();
         var mediaPath = await mediaCacheService.SaveMediaAsync(message);
 
@@ -103,5 +115,7 @@ public class ChannelMonitoringService : BackgroundService
 
         var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
         await mediator.Send(new ProcessTelegramChannelPostCommand(dto, action));
+
+        scope.Dispose();
     }
 }

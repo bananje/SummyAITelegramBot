@@ -7,7 +7,7 @@ using Telegram.Bot.Types;
 using Microsoft.EntityFrameworkCore;
 using SummyAITelegramBot.Core.Bot.Extensions;
 
-namespace SummyAITelegramBot.Core.Bot.Handlers;
+namespace SummyAITelegramBot.Core.Bot.Features.Channel.Handlers;
 
 [TelegramUpdateHandler("/mychannels")]
 public class ShowChannelsPaginatedHandler(
@@ -44,11 +44,11 @@ public class ShowChannelsPaginatedHandler(
                 new[] { InlineKeyboardButton.WithCallbackData("➕ Добавить канал", "/add") }
             });
 
-            await using var emptyStream = staticImageService.GetImageStream("summy_delete.jpg");
+            var emptyStream = staticImageService.GetImageStream("summy_delete.jpg");
 
             await bot.ReactivelySendPhotoAsync(
                 chatId,
-                new InputFileStream(emptyStream),
+                emptyStream,
                 noChannelsText,
                 replyMarkup: addChannelButton,
                 userMessage: update.CallbackQuery?.Message ?? update.Message
@@ -109,12 +109,12 @@ public class ShowChannelsPaginatedHandler(
         var text = "<b>📢 Ваши каналы:</b>\n\nНажмите на канал, чтобы удалить его.";
         var markup = new InlineKeyboardMarkup(buttons);
 
-        await using var stream = staticImageService.GetImageStream("summy_delete.jpg");
+        var stream = staticImageService.GetImageStream("summy_delete.jpg");
 
         await bot.ReactivelySendPhotoAsync(
             chatId,
             caption: text,
-            photo: new InputFileStream(stream),
+            photo: stream,
             replyMarkup: markup,
             userMessage: update.CallbackQuery?.Message ?? update.Message
         );

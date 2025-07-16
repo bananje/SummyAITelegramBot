@@ -21,7 +21,7 @@ public class AccountHadler(
         var text = $"""
                 <b>👋Summy к вашим услугам!</b>
 
-                Текст личного кабинета
+                Вы в центре сводок от Summy 📜 Выберите ниже нужную команду 🦉
                 """;
         var imagePath = "summy_account.jpg";
 
@@ -33,10 +33,10 @@ public class AccountHadler(
             new[] { InlineKeyboardButton.WithCallbackData("💵 Подписка", "/showsubscription") },
         });
 
-        await using var stream = imageService.GetImageStream(imagePath);
+        var stream = imageService.GetImageStream(imagePath);
         await botClient.ReactivelySendPhotoAsync(
             chatInfo.chatId,
-            photo: new InputFileStream(stream),
+            stream,
             userMessage: update.Message,
             caption: text,
             replyMarkup: keyboard

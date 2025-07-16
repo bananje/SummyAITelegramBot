@@ -9,5 +9,5 @@ public interface IUserService
     /// Обновить информацию о пользователе
     /// </summary>
     /// <returns></returns>
-    Task<UserEn> UpdateOrCreateUserByTelegramAsync(long userId, Message message);
+    Task<UserEn> UpdateOrCreateUserByTelegramAsync(Update update);
 }

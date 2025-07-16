@@ -84,11 +84,11 @@ public class ShowSubscriptionPlansHandler(
             Сова Summy приподнесёт небольшой подарок❤️</b>
             """;
 
-        await using var stream = imageService.GetImageStream("summy_sub.jpg");
+        var stream = imageService.GetImageStream("summy_sub.jpg");
 
         await bot.ReactivelySendPhotoAsync(
             chatId,
-            photo: new InputFileStream(stream),
+            photo: stream,
             userMessage: update.Message,
             caption: text,
             replyMarkup: new InlineKeyboardMarkup(keyboardButtons)
@@ -118,11 +118,11 @@ public class ShowSubscriptionPlansHandler(
             Сова Summy приподнесёт небольшой подарок❤️</b>
             """;
 
-        await using var stream = imageService.GetImageStream("summy_sub.jpg");
+        var stream = imageService.GetImageStream("summy_sub.jpg");
 
         await bot.ReactivelySendPhotoAsync(
             chatId,
-            photo: new InputFileStream(stream),
+            photo: stream,
             userMessage: update.Message,
             caption: text,
             replyMarkup: keyboard
@@ -146,11 +146,11 @@ public class ShowSubscriptionPlansHandler(
             Спасибо за поддержку Совы Summy ❤️
             """;
 
-        await using var stream = imageService.GetImageStream("summy_sub.jpg");
+        var stream = imageService.GetImageStream("summy_sub.jpg");
 
         await bot.ReactivelySendPhotoAsync(
             chatId,
-            photo: new InputFileStream(stream),
+            photo: stream,
             userMessage: update.Message,
             caption: text,
             replyMarkup: keyboard

@@ -2,7 +2,7 @@
 
 public interface IStaticImageService
 {
-    Stream GetImageStream(string fileName, string? dirName = "image");
+    Stream GetImageStream(string fileName, string? dirName = "images");
 
     void DeleteImage(string fileName, string dirName);
 }

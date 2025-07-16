@@ -15,7 +15,7 @@ public class StaticImageService : IStaticImageService
     public Stream GetImageStream(string fileName, string? dirName = "images")
     {
         var fullPath = Path.Combine(_webRootPath, dirName, fileName);
-        var defaultPath = Path.Combine(_webRootPath, dirName, "summy_start.png");
+        var defaultPath = Path.Combine(_webRootPath, dirName, "summy_start.jpg");
 
         if (!File.Exists(fullPath))
         {

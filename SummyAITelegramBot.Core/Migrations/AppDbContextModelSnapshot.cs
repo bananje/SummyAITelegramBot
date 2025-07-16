@@ -135,6 +135,9 @@ namespace SummyAITelegramBot.Core.Migrations
                     b.Property<int>("ChannelPostId")
                         .HasColumnType("integer");
 
+                    b.Property<DateTimeOffset?>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<long>("UserId")
                         .HasColumnType("bigint");
 
