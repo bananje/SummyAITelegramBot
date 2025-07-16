@@ -1,13 +1,14 @@
 ﻿using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
+using Serilog;
+using SummyAITelegramBot.Core.Abstractions;
 using SummyAITelegramBot.Core.Bot.Abstractions;
 using SummyAITelegramBot.Core.Bot.Features.Channel.DTO;
 using SummyAITelegramBot.Core.Commands;
 using SummyAITelegramBot.Core.Domain.Enums;
-using SummyAITelegramBot.Core.Domain.Models;
 using SummyAITelegramBot.Infrastructure.Context;
-using SummyAITelegramBot.Infrastructure.Persistence;
-using Telegram.Bot.Requests.Abstractions;
+using System.IO;
 using TL;
 using WTelegram;
 
@@ -88,34 +89,51 @@ public class ChannelMonitoringWorker : BackgroundService
     private async Task Process(Message message, int id, string text, long channelId, DateTime timeUtc, EntityAction action)
     {
         using var scope = _serviceProvider.CreateScope();
+        string path = "";
 
-        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-
-        var channel = await dbContext.Set<Core.Domain.Models.Channel>()
-                .AsNoTracking()
-                .FirstOrDefaultAsync(u => u.Id == channelId)
-                    ?? throw new Exception($"В системе не зарегистриван канал с ID: {channelId}");
-
-        var mediaCacheService = scope.ServiceProvider.GetRequiredService<IMediaCacheService>();
-        var mediaPath = await mediaCacheService.SaveMediaAsync(message);
-
-        var dto = new ChannelPostDto
+        try
         {
-            Id = id,
-            Text = text,
-            ChannelId = channelId,
-            CreatedAt = action == EntityAction.Create
-                ? DateTime.SpecifyKind(timeUtc, DateTimeKind.Utc)
-                : default,
-            UpdatedAt = action == EntityAction.Update
-                ? DateTime.SpecifyKind(timeUtc, DateTimeKind.Utc)
-                : null,
-            MediaPath = mediaPath
-        };
+            var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-        var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
-        await mediator.Send(new ProcessTelegramChannelPostCommand(dto, action));
+            var channel = await dbContext.Set<Core.Domain.Models.Channel>()
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(u => u.Id == channelId)
+                        ?? throw new Exception($"В системе не зарегистриван канал с ID: {channelId}");
 
-        scope.Dispose();
+            var mediaCacheService = scope.ServiceProvider.GetRequiredService<IMediaCacheService>();
+            var mediaPath = await mediaCacheService.SaveMediaAsync(message);
+
+            var dto = new ChannelPostDto
+            {
+                Id = id,
+                Text = text,
+                ChannelId = channelId,
+                CreatedAt = action == EntityAction.Create
+                    ? DateTime.SpecifyKind(timeUtc, DateTimeKind.Utc)
+                    : default,
+                UpdatedAt = action == EntityAction.Update
+                    ? DateTime.SpecifyKind(timeUtc, DateTimeKind.Utc)
+                    : null,
+                MediaPath = mediaPath
+            };
+            path = mediaPath;
+
+            var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
+            await mediator.Send(new ProcessTelegramChannelPostCommand(dto, action));
+            DeleteImage(scope, path);
+        }
+        catch (Exception ex)
+        {
+            DeleteImage(scope, path);
+            scope.Dispose();
+            Log.Error(ex, ex.Message);
+        }
+    }
+
+    private void DeleteImage(IServiceScope scope, string path)
+    {
+        var staticImageService = scope.ServiceProvider.GetRequiredService<IStaticImageService>();
+
+        staticImageService.DeleteImage(path, "media_cache");
     }
 }

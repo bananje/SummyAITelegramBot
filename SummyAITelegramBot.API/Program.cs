@@ -30,10 +30,6 @@ var builder = WebApplication.CreateBuilder(args);
     .MinimumLevel.Debug()
     .Enrich.FromLogContext()
     .WriteTo.Console()
-    .WriteTo.File(
-        path: "logs/log-.txt",
-        rollingInterval: RollingInterval.Day,
-        retainedFileCountLimit: 7)
     .CreateLogger();
 
     builder.Host.UseSerilog();

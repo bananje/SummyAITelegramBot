@@ -35,8 +35,6 @@ public class ProcessTelegramChannelPostCommandHandler(
         var post = action is EntityAction.Create ? await postService.AddPostAsync(request.Post) 
             : await postService.UpdatePostAsync(request.Post);
       
-        await tgSender.ResolveNotifyUsersAsync(post);
-
-        staticImageService.DeleteImage(post.MediaPath, "media_cache");
+        await tgSender.ResolveNotifyUsersAsync(post);       
     }
 }
