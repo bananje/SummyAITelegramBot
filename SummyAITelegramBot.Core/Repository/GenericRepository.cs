@@ -23,18 +23,18 @@ public class GenericRepository<TId, TEntity> : IRepository<TId, TEntity> where T
         return await _context.Set<TEntity>().FindAsync(id, cancellationToken);
     }
 
-    public async Task<TEntity> UpdateAsync(TEntity entity, CancellationToken cancellationToken = default)
+    public virtual async Task<TEntity> UpdateAsync(TEntity entity, CancellationToken cancellationToken = default)
     {
         _context.Set<TEntity>().Update(entity); ;
         return entity;
     }
 
-    public Task<TEntity> GetOrCreateAsync(TEntity entity, CancellationToken cancellationToken = default)
+    public virtual Task<TEntity> GetOrCreateAsync(TEntity entity, CancellationToken cancellationToken = default)
     {
         throw new NotImplementedException();
     }
 
-    public async Task<TEntity> CreateOrUpdateAsync(TEntity entity, CancellationToken cancellationToken = default)
+    public virtual async Task<TEntity> CreateOrUpdateAsync(TEntity entity, CancellationToken cancellationToken = default)
     {
         var entry = await _context.Set<TEntity>().FindAsync(new object[] { entity.Id }, cancellationToken);
 
@@ -51,13 +51,13 @@ public class GenericRepository<TId, TEntity> : IRepository<TId, TEntity> where T
         }
     }
 
-    public async Task<TEntity> AddAsync(TEntity entity, CancellationToken cancellationToken = default)
+    public virtual async Task<TEntity> AddAsync(TEntity entity, CancellationToken cancellationToken = default)
     {
         var entry = await _context.AddAsync(entity);
         return entry.Entity;
     }
 
-    public async Task RemoveAsync(TId id, CancellationToken cancellationToken = default)
+    public virtual async Task RemoveAsync(TId id, CancellationToken cancellationToken = default)
     {
         var entry = await _context.Set<TEntity>().FindAsync(new object[] { id }, cancellationToken);
 
@@ -67,7 +67,7 @@ public class GenericRepository<TId, TEntity> : IRepository<TId, TEntity> where T
         }
     }
 
-    public async Task RemoveRangeAsync(IEnumerable<TId> ids, CancellationToken cancellationToken = default)
+    public virtual async Task RemoveRangeAsync(IEnumerable<TId> ids, CancellationToken cancellationToken = default)
     {
         var entities = await _context.Set<TEntity>()
             .Where(e => ids.Contains(e.Id))

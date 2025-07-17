@@ -3,6 +3,7 @@ using Hangfire;
 using Microsoft.EntityFrameworkCore;
 using SummyAITelegramBot.Core.Abstractions;
 using SummyAITelegramBot.Core.AI.Abstractions;
+using SummyAITelegramBot.Core.Bot.Extensions;
 using SummyAITelegramBot.Core.Bot.Features.Channel.Abstractions;
 using SummyAITelegramBot.Core.Domain.Enums;
 using SummyAITelegramBot.Core.Domain.Models;
@@ -118,6 +119,24 @@ public class TelegramSenderService(
         }
     }
 
+    public async Task SendSubscriptionOffersToEligibleUsersAsync()
+    {
+        var userRepository = unitOfWork.Repository<long, UserEn>();
+        var targetDate = DateTime.UtcNow.Date.AddDays(2);
+
+        var users = await userRepository.GetIQueryable()
+            .Where(u =>
+                u.Subscription != null &&
+                u.Subscription.Type == SubscriptionType.TrialSubscription &&
+                u.Subscription.EndDate.Date == targetDate)
+            .ToListAsync();
+
+        foreach (var user in users)
+        {
+            await SendSubscriptionOfferAsync(user);
+        }
+    }
+
     public async Task SendGroupedPostsAsync(long userId, int page)
     {
         var delayedRepo = unitOfWork.Repository<long, DelayedUserPost>();
@@ -187,6 +206,38 @@ public class TelegramSenderService(
             parseMode: ParseMode.Html,
             replyMarkup: markup,
             linkPreviewOptions: true
+        );
+    }
+
+    private async Task SendSubscriptionOfferAsync(UserEn user)
+    {
+        var keyboardButtons = new List<List<InlineKeyboardButton>>
+        {
+            new List<InlineKeyboardButton>
+            {
+                InlineKeyboardButton.WithCallbackData("199р/меc", "/pay"),
+                InlineKeyboardButton.WithCallbackData("1500р/навсегда", "/pay")
+            },
+            new List<InlineKeyboardButton>
+            {
+                InlineKeyboardButton.WithCallbackData("✅ Продолжить бесплатно", "/complete")
+            }
+        };
+
+        var text = $"""
+                До окончания пробного периода остаётся 2 дня🤝
+                Summy хочет проявить заботу и за небольшое вознаграждение присылать вам сводки безлимитно
+
+                <b> *Вы можете остаться на бесплатной версии, где можно добавить до 3-х каналов❤️</b>
+            """;
+
+        var stream = imageService.GetImageStream("summy_sub.jpg");
+
+        await telegramBotClient.ReactivelySendPhotoAsync(
+            user.ChatId,
+            photo: stream,
+            caption: text,
+            replyMarkup: new InlineKeyboardMarkup(keyboardButtons)
         );
     }
 

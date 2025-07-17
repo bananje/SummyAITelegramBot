@@ -2,7 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using SummyAITelegramBot.Core.Abstractions;
 using SummyAITelegramBot.Core.Bot.Abstractions;
-using SummyAITelegramBot.Core.Bot.Features.User.Abstractions;
+using SummyAITelegramBot.Core.Bot.Features.Subsciption.Abstractions;
 using SummyAITelegramBot.Core.Bot.Utils;
 using Telegram.Bot;
 using Telegram.Bot.Types;
@@ -14,7 +14,7 @@ namespace SummyAITelegramBot.API.Controllers;
 [ApiController]
 public class TelegramWebHookController(
     ITelegramUpdateFactory telegramUpdateFactory,
-    IUserService userService,
+    ISubscriptionService subscriptionService,
     IUnitOfWork unitOfWork,
     ITelegramBotClient botClient) : ControllerBase
 {
@@ -33,9 +33,15 @@ public class TelegramWebHookController(
     {
         try
         {
+            // Если пользователь новичок
             if (!await CheckUser(update))
             {
                 await telegramUpdateFactory.DispatchAsync(update, "/start");
+
+                var userInfo = TelegramHelper.GetUserAndChatId(update);
+
+                await subscriptionService.SetTrialSubscriptionAsync(userInfo.chatId);
+
                 return Ok();
             }
 

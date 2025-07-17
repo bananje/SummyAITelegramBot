@@ -77,7 +77,7 @@ public class AddChannelHandler(
             .FirstOrDefaultAsync(user => user.Id == userId)
                 ?? throw new Exception($"Ошибка при настройке пользователя {userId}.");
 
-        if (user.Channels.Count == 5 && !user.HasSubscriptionPremium)
+        if (user.Channels.Count == 3 && !user.HasSubscriptionPremium)
         {
             commandCache.SetLastCommand(userId, "/add");
             await telegramUpdateFactory.DispatchAsync(update, "/showsubscription");

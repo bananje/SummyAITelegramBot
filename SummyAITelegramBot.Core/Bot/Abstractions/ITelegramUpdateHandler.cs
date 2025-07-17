@@ -12,14 +12,5 @@ public interface ITelegramUpdateHandler
     /// </summary>
     /// <param name="query"></param>
     /// <returns></returns>
-    Task HandleAsync(Update update);
-
-    /// <summary>
-    /// Запустить цепочку связанных кол-бэков
-    /// Not implemented, если цепочка не требуется
-    /// </summary>
-    /// <param name="bot"></param>
-    /// <param name="chatId"></param>
-    /// <returns></returns>
-    Task StartChainAsync(Update update) => Task.CompletedTask;
+    Task HandleAsync(Update? update);
 }

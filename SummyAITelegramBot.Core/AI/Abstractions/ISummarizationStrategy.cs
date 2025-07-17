@@ -6,5 +6,5 @@ public interface ISummarizationStrategy
 
     Task<bool> ValidateOfUniqueTextAsync(string allTexts, string currentText);
 
-    Task<bool> СheckForAdvertising(string inputText);
+    //Task<bool> СheckForAdvertising(string inputText);
 }

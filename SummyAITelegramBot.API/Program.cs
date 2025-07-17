@@ -23,6 +23,8 @@ using SummyAITelegramBot.Core.Utils.Repository;
 using SummyAITelegramBot.API.Jobs;
 using SummyAITelegramBot.Core.Bot.Utils;
 using SummyAITelegramBot.Core.Extensions;
+using SummyAITelegramBot.Core.Bot.Features.Subsciption.Abstractions;
+using SummyAITelegramBot.Core.Bot.Features.Subsciption.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 {
@@ -59,6 +61,7 @@ var builder = WebApplication.CreateBuilder(args);
 
     builder.Services.AddScoped<IStaticImageService, StaticImageService>();
     builder.Services.AddScoped<IMediaCacheService, TelegramMediaCacheService>();
+    builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
 
     builder.Services.AddScoped<IUserService, UserService>();
     builder.Services.AddScoped(typeof(IRepository<,>), typeof(GenericRepository<,>));
@@ -92,15 +95,18 @@ var builder = WebApplication.CreateBuilder(args);
     // Конфигурируем Hangfire с PostgreSQL
     builder.Services.AddHangfire(config =>
     {
-        config.SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
-              .UseSimpleAssemblyNameTypeSerializer()
-              .UseRecommendedSerializerSettings()
-              .UsePostgreSqlStorage(builder.Configuration.GetConnectionString("DefaultConnection"), 
-                                    new PostgreSqlStorageOptions { SchemaName = "hangfire" });
+        config
+            .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+            .UseSimpleAssemblyNameTypeSerializer()
+            .UseRecommendedSerializerSettings()
+            .UsePostgreSqlStorage(builder.Configuration.GetConnectionString("DefaultConnection"),
+                new PostgreSqlStorageOptions
+                {
+                    SchemaName = "hangfire"
+                });
     });
 
-    // Запускаем фоновые процессы Hangfire
-    builder.Services.AddHangfireServer();
+    builder.Services.AddHangfireServer(); // есть — хорошо
     builder.Services.AddMediatR(cfg =>
     {
         cfg.RegisterServicesFromAssembly(typeof(ProcessTelegramChannelPostCommandHandler).Assembly);
@@ -130,7 +136,7 @@ var builder = WebApplication.CreateBuilder(args);
     {
         options.ForwardedHeaders =
             ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
-    });
+    });  
 }
 
 var app = builder.Build();
@@ -140,7 +146,8 @@ var app = builder.Build();
     using (var scope = app.Services.CreateScope())
     {
         var scheduler = scope.ServiceProvider.GetRequiredService<HangfireSchedulerService>();
-        scheduler.ScheduleCleanupJob();
+        //scheduler.ScheduleCleanupJob();
+        scheduler.ScheduleJobTwiceDaily();
     }
 
     using (var scope = app.Services.CreateScope())
@@ -177,6 +184,5 @@ var app = builder.Build();
     app.UseHangfireDashboard("/hangfire");
     app.MapControllers();
     app.UseExceptionHandler();
-
-    app.Run();
+    app.Run();  
 }

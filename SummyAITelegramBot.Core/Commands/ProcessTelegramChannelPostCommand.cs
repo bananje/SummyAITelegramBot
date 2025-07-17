@@ -21,12 +21,12 @@ public class ProcessTelegramChannelPostCommandHandler(
 
         var aiHandler = aiFactory.Create(AiModel.DeepSeek);
 
-        var checkAdversting = await aiHandler.СheckForAdvertising(request.Post.Text);
+        //var checkAdversting = await aiHandler.СheckForAdvertising(request.Post.Text);
 
-        if (!checkAdversting)
-        {
-            return;
-        }
+        //if (!checkAdversting)
+        //{
+        //    return;
+        //}
 
         var handledByAiText = await aiHandler.SummarizeAsync(request.Post.Text);       
 

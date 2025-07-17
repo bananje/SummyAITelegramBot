@@ -50,6 +50,12 @@ public class ShowSubscriptionPlansHandler(
             return;
         }
 
+        if (user.Subscription?.Type == Domain.Enums.SubscriptionType.TrialSubscription)
+        {
+            await ShowMessageForTrialSubscribersAsync(user.Subscription, chatId, update);
+            return;
+        }
+
         var keyboardButtons = new List<List<InlineKeyboardButton>>
         {
             new List<InlineKeyboardButton>
@@ -154,6 +160,41 @@ public class ShowSubscriptionPlansHandler(
             userMessage: update.Message,
             caption: text,
             replyMarkup: keyboard
+        );
+    }
+
+    private async Task ShowMessageForTrialSubscribersAsync(Subscription subscription, long chatId, Update update)
+    {
+        var keyboardButtons = new List<List<InlineKeyboardButton>>
+        {
+            new List<InlineKeyboardButton>
+            {
+                InlineKeyboardButton.WithCallbackData("199р/меc", "/pay"),
+                InlineKeyboardButton.WithCallbackData("1500р/навсегда", "/pay")
+            },
+            new List<InlineKeyboardButton>
+            {
+                InlineKeyboardButton.WithCallbackData("🦉 Личный кабинет", "/account")
+            }
+        };
+
+        var subTrialDays = subscription.EndDate - DateTime.UtcNow;
+
+        var text = $"""
+                Добавляйте безлимитное количество каналов ещё {subTrialDays.Days} дней
+
+                <b> *Далее, вы можете приобрести подписку или 
+                остаться на бесплатном тарифе (доступно к добавлению 3 канала)❤️</b>
+            """;
+
+        var stream = imageService.GetImageStream("summy_sub.jpg");
+
+        await bot.ReactivelySendPhotoAsync(
+            chatId,
+            photo: stream,
+            userMessage: update.Message,
+            caption: text,
+            replyMarkup: new InlineKeyboardMarkup(keyboardButtons)
         );
     }
 }

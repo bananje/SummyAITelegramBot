@@ -3,5 +3,6 @@
 public enum SubscriptionType
 {
     MonthSubscription,
-    UnlimitedSubscription
+    UnlimitedSubscription,
+    TrialSubscription
 }
