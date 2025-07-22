@@ -18,18 +18,21 @@ public class HangfireSchedulerService
     {
         var tz = TimeZoneInfo.FindSystemTimeZoneById("Russian Standard Time");
         var cron = CronExpression.Parse("0 2 * * *");
-        var nextRun = cron.GetNextOccurrence(DateTimeOffset.UtcNow, tz);
+        var targetDate = DateTime.SpecifyKind(DateTime.Now, DateTimeKind.Unspecified);
+        var nextRun = cron.GetNextOccurrence(targetDate, tz); 
 
         if (nextRun.HasValue)
         {
+            var localTime = nextRun.Value;
+
             _jobClient.Schedule<CleanerService>(
                 service => service.CleanupOldSentPostsAsync(),
-                nextRun.Value.UtcDateTime
+                localTime
             );
 
             _jobClient.Schedule<CleanerService>(
                 service => service.CleanupMediaCacheAsync(),
-                nextRun.Value.UtcDateTime
+                localTime
             );
         }
     }
@@ -37,29 +40,26 @@ public class HangfireSchedulerService
     public void ScheduleJobTwiceDaily()
     {
         var moscowTz = TimeZoneInfo.FindSystemTimeZoneById("Russian Standard Time");
-
-        var nowUtc = DateTimeOffset.UtcNow;
+        var targetDate = DateTime.SpecifyKind(DateTime.Now, DateTimeKind.Unspecified);
+        var nowMoscow = TimeZoneInfo.ConvertTime(targetDate, moscowTz);
 
         var timesInMoscow = new[]
         {
-            new TimeSpan(10, 0, 0), // 10:00 МСК
-            new TimeSpan(18, 0, 0)  // 18:00 МСК
-        };
+        new TimeSpan(9, 0, 0),
+        new TimeSpan(13, 0, 0)
+    };
 
         foreach (var targetTime in timesInMoscow)
         {
-            var todayInMoscow = TimeZoneInfo.ConvertTime(nowUtc, moscowTz).Date;
-            var scheduledMoscowTime = todayInMoscow + targetTime;
-            var scheduledUtc = TimeZoneInfo.ConvertTimeToUtc(scheduledMoscowTime, moscowTz);
+            var scheduledTime = nowMoscow.Date + targetTime;
 
-            // Если время уже прошло — перенести на следующий день
-            if (scheduledUtc <= nowUtc)
-                scheduledUtc = scheduledUtc.AddDays(1);
+            if (scheduledTime <= nowMoscow)
+                scheduledTime = scheduledTime.AddDays(1);
 
-            // Ставим две задачи на каждый интервал
+            // Тут scheduledTime имеет Kind=Unspecified, что нужно PostgreSQL
             _jobClient.Schedule<TelegramSenderService>(
                 service => service.SendSubscriptionOffersToEligibleUsersAsync(),
-                scheduledUtc
+                scheduledTime
             );
         }
     }

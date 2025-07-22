@@ -19,7 +19,7 @@ public class ProcessTelegramChannelPostCommandHandler(
     {
         var action = request.Action;
 
-        var aiHandler = aiFactory.Create(AiModel.DeepSeek);
+        var aiHandler = aiFactory.Create(AiModel.TextHeader);
 
         //var checkAdversting = await aiHandler.СheckForAdvertising(request.Post.Text);
 

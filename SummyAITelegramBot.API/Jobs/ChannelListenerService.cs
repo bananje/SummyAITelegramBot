@@ -97,8 +97,14 @@ public class ChannelMonitoringWorker : BackgroundService
 
             var channel = await dbContext.Set<Core.Domain.Models.Channel>()
                     .AsNoTracking()
-                    .FirstOrDefaultAsync(u => u.Id == channelId)
-                        ?? throw new Exception($"В системе не зарегистриван канал с ID: {channelId}");
+                    .FirstOrDefaultAsync(u => u.Id == channelId);
+
+            if (channel is null)
+            {
+                Log.Warning($"В системе не зарегистриван канал с ID: {channelId}");
+
+                return;
+            }
 
             var mediaCacheService = scope.ServiceProvider.GetRequiredService<IMediaCacheService>();
             var mediaPath = await mediaCacheService.SaveMediaAsync(message);

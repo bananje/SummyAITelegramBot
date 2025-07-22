@@ -2,6 +2,6 @@
 
 public enum AiModel
 {
-    OpenAI = 1,
+    TextHeader = 1,
     DeepSeek = 2
 }

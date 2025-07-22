@@ -49,14 +49,26 @@ public class TelegramSenderService(
                 if (recentPosts.Count == 0)
                 {
                     var messageText = FormatInstantSummary(post);
+                    
+                    if (post.MediaPath is not null)
+                    {
+                        await using var stream = imageService.GetImageStream(post.MediaPath, "media_cache");
 
-                    await using var stream = imageService.GetImageStream(post.MediaPath, "media_cache");
+                        await telegramBotClient.SendPhoto(
+                            chatId: user.Id,
+                            photo: new InputFileStream(stream),
+                            caption: messageText,
+                            parseMode: ParseMode.Html);
+                    }
+                    else
+                    {
+                        await telegramBotClient.SendMessage(
+                            chatId: user.Id,
+                            messageText,
+                            parseMode: ParseMode.Html,
+                            linkPreviewOptions: true);
+                    }
 
-                    await telegramBotClient.SendPhoto(
-                        chatId: user.Id,
-                        photo: new InputFileStream(stream),
-                        caption: messageText,
-                        parseMode: ParseMode.Html);
 
                     await sentPostsRepo.AddAsync(new SentUserPost
                     {
@@ -74,20 +86,31 @@ public class TelegramSenderService(
                 var currentPostText = post.Text;
                 var message = string.Join("\n\n", allTexts);
 
-                var aiHandler = aiFactory.Create(AiModel.DeepSeek);
+                var aiHandler = aiFactory.Create(AiModel.TextHeader);
                 var isUniquePost = await aiHandler.ValidateOfUniqueTextAsync(message, currentPostText);
 
                 if (isUniquePost)
                 {
                     var messageText = FormatInstantSummary(post);
 
-                    await using var stream = imageService.GetImageStream(post.MediaPath, "media_cache");
+                    if (post.MediaPath is not null)
+                    {
+                        await using var stream = imageService.GetImageStream(post.MediaPath, "media_cache");
 
-                    await telegramBotClient.SendPhoto(
-                        chatId: user.Id, 
-                        caption: messageText,
-                        parseMode: ParseMode.Html,
-                        photo: new InputFileStream(stream));
+                        await telegramBotClient.SendPhoto(
+                            chatId: user.Id,
+                            photo: new InputFileStream(stream),
+                            caption: messageText,
+                            parseMode: ParseMode.Html);
+                    }
+                    else
+                    {
+                        await telegramBotClient.SendMessage(
+                            chatId: user.Id,
+                            messageText,
+                            parseMode: ParseMode.Html,
+                            linkPreviewOptions: true);
+                    }
 
                     await sentPostsRepo.AddAsync(new SentUserPost
                     {
@@ -295,7 +318,11 @@ public class TelegramSenderService(
         var postText = string.IsNullOrWhiteSpace(post.Text) ? "Нет текста" : post.Text.Trim();
         var channelUrlRaw = post.Channel?.Link?.Trim();
 
-        // Извлекаем username из ссылки канала (https://t.me/username)
+        // Очистка лишних пустых строк внутри текста
+        postText = string.Join("\n", postText
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries)
+            .Select(line => line.Trim()));
+
         var channelUsername = !string.IsNullOrEmpty(channelUrlRaw)
             ? channelUrlRaw.Replace("https://t.me/", "", StringComparison.OrdinalIgnoreCase).TrimEnd('/')
             : null;
