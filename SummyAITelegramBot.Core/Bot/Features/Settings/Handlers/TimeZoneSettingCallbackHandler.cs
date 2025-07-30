@@ -1,8 +1,11 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Hangfire;
+using Hangfire.Common;
+using Microsoft.EntityFrameworkCore;
 using Serilog;
 using SummyAITelegramBot.Core.Abstractions;
 using SummyAITelegramBot.Core.Bot.Abstractions;
 using SummyAITelegramBot.Core.Bot.Attributes;
+using SummyAITelegramBot.Core.Bot.Features.Channel.Services;
 using SummyAITelegramBot.Core.Bot.Utils;
 using SummyAITelegramBot.Core.Domain.Models;
 using Telegram.Bot;
@@ -15,6 +18,7 @@ public class TimeZoneSettingCallbackHandler(
     IUnitOfWork unitOfWork,
     ITelegramBotClient bot,
     ITelegramUpdateFactory updateFactory,
+    IRecurringJobManager recurringJobManager,
     ILogger logger) : ITelegramUpdateHandler
 {
     public async Task HandleAsync(Update update)
@@ -47,6 +51,9 @@ public class TimeZoneSettingCallbackHandler(
 
                 await settingsRepo.CreateOrUpdateAsync(userSettings);
                 await unitOfWork.CommitAsync();
+
+                ScheduleRecurringJob(userSettings);
+
                 await updateFactory.DispatchAsync(update, "/complete");
             }
             catch (Exception ex)
@@ -55,6 +62,43 @@ public class TimeZoneSettingCallbackHandler(
 
                 await updateFactory.DispatchAsync(update, "/showtimezonesettings");
             }
+        }
+    }
+
+    private void ScheduleRecurringJob(ChannelUserSettings settings)
+    {
+        if (settings?.NotificationTime == null)
+            return;
+
+        var timeZoneId = settings.TimeZoneId ?? "UTC";
+        TimeZoneInfo timeZone;
+
+        try
+        {
+            timeZone = TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
+        }
+        catch
+        {
+            timeZone = TimeZoneInfo.Utc;
+        }
+
+        var notificationTime = settings.NotificationTime.Value;
+        //var cronExpression = Cron.Daily(notificationTime.Hour, notificationTime.Minute);
+        var cronExpression = Cron.Daily(17, 37);
+        var recurringJobId = $"SendGroupedPosts_User_{settings.UserId}";
+        try
+        {
+            recurringJobManager.AddOrUpdate(
+                recurringJobId,
+                Job.FromExpression<TelegramSenderService>(service => service.SendGroupedPostsAsync(settings.UserId, 0)),
+                cronExpression,
+                timeZone
+            );
+        }
+        catch (Exception ex)
+        {
+            // логируй ошибку
+            logger.Error($"[Hangfire AddOrUpdate Error] {ex}");
         }
     }
 }

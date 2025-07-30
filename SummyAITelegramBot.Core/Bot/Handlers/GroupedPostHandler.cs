@@ -1,4 +1,5 @@
-﻿using SummyAITelegramBot.Core.Abstractions;
+﻿using Hangfire;
+using SummyAITelegramBot.Core.Abstractions;
 using SummyAITelegramBot.Core.AI.Abstractions;
 using SummyAITelegramBot.Core.Bot.Abstractions;
 using SummyAITelegramBot.Core.Bot.Attributes;
@@ -13,6 +14,7 @@ public class GroupedPostsHandler(
     ITelegramBotClient bot, 
     IUnitOfWork unitOfWork, 
     IStaticImageService imageService,
+    IRecurringJobManager recurringJobManager,
     ISummarizationStrategyFactory summarizationStrategyFactory) : ITelegramUpdateHandler
 {
     public async Task HandleAsync(Update update)
@@ -24,7 +26,7 @@ public class GroupedPostsHandler(
             var sender = new TelegramSenderService(
                 bot, 
                 summarizationStrategyFactory, 
-                imageService, unitOfWork);
+                imageService, recurringJobManager, unitOfWork);
 
             await sender.SendGroupedPostsAsync(update.CallbackQuery.From.Id, page);
         }

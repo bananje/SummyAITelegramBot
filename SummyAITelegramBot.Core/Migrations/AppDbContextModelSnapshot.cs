@@ -138,6 +138,9 @@ namespace SummyAITelegramBot.Core.Migrations
                     b.Property<DateTimeOffset?>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<bool>("IsSend")
+                        .HasColumnType("boolean");
+
                     b.Property<long>("UserId")
                         .HasColumnType("bigint");
 

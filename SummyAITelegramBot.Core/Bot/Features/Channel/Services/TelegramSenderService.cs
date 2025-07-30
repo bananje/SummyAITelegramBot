@@ -1,5 +1,5 @@
-﻿using Cronos;
-using Hangfire;
+﻿using Hangfire;
+using Hangfire.Common;
 using Microsoft.EntityFrameworkCore;
 using SummyAITelegramBot.Core.Abstractions;
 using SummyAITelegramBot.Core.AI.Abstractions;
@@ -9,8 +9,6 @@ using SummyAITelegramBot.Core.Domain.Enums;
 using SummyAITelegramBot.Core.Domain.Models;
 using System.Text;
 using Telegram.Bot;
-using Telegram.Bot.Types;
-using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
 using UserEn = SummyAITelegramBot.Core.Domain.Models.User;
 
@@ -20,6 +18,7 @@ public class TelegramSenderService(
     ITelegramBotClient telegramBotClient,
     ISummarizationStrategyFactory aiFactory,
     IStaticImageService imageService,
+    IRecurringJobManager recurringJobManager,
     IUnitOfWork unitOfWork) : ITelegramSenderService
 {
     public async Task ResolveNotifyUsersAsync(ChannelPost post)
@@ -31,58 +30,20 @@ public class TelegramSenderService(
             .ToListAsync();
 
         var delayedRepo = unitOfWork.Repository<long, DelayedUserPost>();
-        var sentPostsRepo = unitOfWork.Repository<int, SentUserPost>();
+        //var sentPostsRepo = unitOfWork.Repository<int, SentUserPost>();
 
         foreach (var user in users)
         {
             var settings = user.ChannelUserSettings ?? throw new Exception($"Отсутсвуют настройки у пользователя ID:{user.Id}");
 
-            if (settings.InstantlyTimeNotification.GetValueOrDefault())
-            {
-                // Получим посты за последние 10 минут
-                var recentPosts = await sentPostsRepo.GetIQueryable()
-                    .Where(p => p.UserId == user.Id &&
-                                p.SentAt >= DateTime.UtcNow.AddMinutes(-10))
+            var delaydedPosts = await delayedRepo.GetIQueryable()
+                    .Where(p => p.UserId == user.Id && !p.IsSend)
                     .Include(p => p.ChannelPost)
                     .ToListAsync();
 
-                if (recentPosts.Count == 0)
-                {
-                    var messageText = FormatInstantSummary(post);
-                    
-                    if (post.MediaPath is not null)
-                    {
-                        await using var stream = imageService.GetImageStream(post.MediaPath, "media_cache");
-
-                        await telegramBotClient.SendPhoto(
-                            chatId: user.Id,
-                            photo: new InputFileStream(stream),
-                            caption: messageText,
-                            parseMode: ParseMode.Html);
-                    }
-                    else
-                    {
-                        await telegramBotClient.SendMessage(
-                            chatId: user.Id,
-                            messageText,
-                            parseMode: ParseMode.Html,
-                            linkPreviewOptions: true);
-                    }
-
-
-                    await sentPostsRepo.AddAsync(new SentUserPost
-                    {
-                        UserId = user.Id,
-                        ChannelId = post.ChannelId,
-                        ChannelPostId = post.Id,
-                        SentAt = DateTime.UtcNow
-                    });
-                    await unitOfWork.CommitAsync();
-                    return;
-                }
-
-                // Объединяем все тексты
-                var allTexts = new List<string>(recentPosts.Select(p => p.ChannelPost.Text));
+            if (delaydedPosts.Count > 0)
+            {
+                var allTexts = new List<string>(delaydedPosts.Select(p => p.ChannelPost.Text));
                 var currentPostText = post.Text;
                 var message = string.Join("\n\n", allTexts);
 
@@ -91,33 +52,12 @@ public class TelegramSenderService(
 
                 if (isUniquePost)
                 {
-                    var messageText = FormatInstantSummary(post);
-
-                    if (post.MediaPath is not null)
-                    {
-                        await using var stream = imageService.GetImageStream(post.MediaPath, "media_cache");
-
-                        await telegramBotClient.SendPhoto(
-                            chatId: user.Id,
-                            photo: new InputFileStream(stream),
-                            caption: messageText,
-                            parseMode: ParseMode.Html);
-                    }
-                    else
-                    {
-                        await telegramBotClient.SendMessage(
-                            chatId: user.Id,
-                            messageText,
-                            parseMode: ParseMode.Html,
-                            linkPreviewOptions: true);
-                    }
-
-                    await sentPostsRepo.AddAsync(new SentUserPost
+                    await delayedRepo.AddAsync(new DelayedUserPost
                     {
                         UserId = user.Id,
                         ChannelId = post.ChannelId,
-                        ChannelPostId = post.Id,
-                        SentAt = DateTime.UtcNow
+                        CreatedDate = DateTime.UtcNow,
+                        ChannelPostId = post.Id
                     });
                 }
             }
@@ -131,14 +71,130 @@ public class TelegramSenderService(
                     ChannelPostId = post.Id
                 });
             }
-        }
 
-        await unitOfWork.CommitAsync();
+            #region InstantlyNotify
+            //    if (isUniquePost)
+            //    {
+            //        var messageText = FormatInstantSummary(post);
 
-        // Поставить задачу в Hangfire для пользователей с отложенными сообщениями
-        foreach (var user in users.Where(u => !u.ChannelUserSettings.InstantlyTimeNotification.GetValueOrDefault()))
-        {
-            ScheduleOneTimeJob(user);
+            //        if (post.MediaPath is not null)
+            //        {
+            //            await using var stream = imageService.GetImageStream(post.MediaPath, "media_cache");
+
+            //            await telegramBotClient.SendPhoto(
+            //                chatId: user.Id,
+            //                photo: new InputFileStream(stream),
+            //                caption: messageText,
+            //                parseMode: ParseMode.Html);
+            //        }
+            //        else
+            //        {
+            //            await telegramBotClient.SendMessage(
+            //                chatId: user.Id,
+            //                messageText,
+            //                parseMode: ParseMode.Html,
+            //                linkPreviewOptions: true);
+            //        }
+
+
+            //        if (settings.InstantlyTimeNotification.GetValueOrDefault())
+            //    {
+            //        // Получим посты за последние 10 минут
+            //        var recentPosts = await sentPostsRepo.GetIQueryable()
+            //            .Where(p => p.UserId == user.Id &&
+            //                        p.SentAt >= DateTime.UtcNow.AddMinutes(-10))
+            //            .Include(p => p.ChannelPost)
+            //            .ToListAsync();
+
+            //        if (recentPosts.Count == 0)
+            //        {
+            //            var messageText = FormatInstantSummary(post);
+
+            //            if (post.MediaPath is not null)
+            //            {
+            //                await using var stream = imageService.GetImageStream(post.MediaPath, "media_cache");
+
+            //                await telegramBotClient.SendPhoto(
+            //                    chatId: user.Id,
+            //                    photo: new InputFileStream(stream),
+            //                    caption: messageText,
+            //                    parseMode: ParseMode.Html);
+            //            }
+            //            else
+            //            {
+            //                await telegramBotClient.SendMessage(
+            //                    chatId: user.Id,
+            //                    messageText,
+            //                    parseMode: ParseMode.Html,
+            //                    linkPreviewOptions: true);
+            //            }
+
+
+            //            await sentPostsRepo.AddAsync(new SentUserPost
+            //            {
+            //                UserId = user.Id,
+            //                ChannelId = post.ChannelId,
+            //                ChannelPostId = post.Id,
+            //                SentAt = DateTime.UtcNow
+            //            });
+            //            await unitOfWork.CommitAsync();
+            //            return;
+            //        }
+
+            //        // Объединяем все тексты
+            //        var allTexts = new List<string>(recentPosts.Select(p => p.ChannelPost.Text));
+            //        var currentPostText = post.Text;
+            //        var message = string.Join("\n\n", allTexts);
+
+            //        var aiHandler = aiFactory.Create(AiModel.TextHeader);
+            //        var isUniquePost = await aiHandler.ValidateOfUniqueTextAsync(message, currentPostText);
+
+            //        if (isUniquePost)
+            //        {
+            //            var messageText = FormatInstantSummary(post);
+
+            //            if (post.MediaPath is not null)
+            //            {
+            //                await using var stream = imageService.GetImageStream(post.MediaPath, "media_cache");
+
+            //                await telegramBotClient.SendPhoto(
+            //                    chatId: user.Id,
+            //                    photo: new InputFileStream(stream),
+            //                    caption: messageText,
+            //                    parseMode: ParseMode.Html);
+            //            }
+            //            else
+            //            {
+            //                await telegramBotClient.SendMessage(
+            //                    chatId: user.Id,
+            //                    messageText,
+            //                    parseMode: ParseMode.Html,
+            //                    linkPreviewOptions: true);
+            //            }
+
+            //            await sentPostsRepo.AddAsync(new SentUserPost
+            //            {
+            //                UserId = user.Id,
+            //                ChannelId = post.ChannelId,
+            //                ChannelPostId = post.Id,
+            //                SentAt = DateTime.UtcNow
+            //            });
+            //        }
+            //    }
+            //    else
+            //    {
+            //        await delayedRepo.AddAsync(new DelayedUserPost
+            //        {
+            //            UserId = user.Id,
+            //            ChannelId = post.ChannelId,
+            //            CreatedDate = DateTime.UtcNow,
+            //            ChannelPostId = post.Id
+            //        });
+            //    }
+            //}
+            #endregion
+
+            await unitOfWork.CommitAsync();
         }
     }
 
@@ -185,13 +241,11 @@ public class TelegramSenderService(
         var channelUrl = channel.Link?.Trim();
         var channelTitle = channel.Title?.Trim() ?? "Канал";
 
-        // Извлекаем username из URL: https://t.me/username -> username
         var channelUsername = channelUrl?
             .Replace("https://t.me/", "", StringComparison.OrdinalIgnoreCase)
             .TrimEnd('/');
 
         var sb = new StringBuilder();
-
         sb.AppendLine("🗂 <b>Групповая сводка по каналу</b>\n");
 
         if (!string.IsNullOrEmpty(channelUrl) && !string.IsNullOrEmpty(channelTitle))
@@ -204,7 +258,6 @@ public class TelegramSenderService(
             var post = postEntry.ChannelPost;
             var postText = post.Text?.Trim() ?? "(без текста)";
 
-            // Ссылка на конкретный пост
             string? postLink = !string.IsNullOrEmpty(channelUsername)
                 ? $"https://t.me/{channelUsername}/{post.Id}"
                 : null;
@@ -215,21 +268,36 @@ public class TelegramSenderService(
             sb.AppendLine();
         }
 
-        var navButtons = new List<InlineKeyboardButton>();
+        // Первая строка: индикатор страницы
+        var pageIndicatorRow = new[]
+        {
+            InlineKeyboardButton.WithCallbackData($"{page + 1}/{grouped.Count}", "noop")
+        };
+
+        // Вторая строка: кнопки навигации
+        var navRow = new List<InlineKeyboardButton>();
         if (page > 0)
-            navButtons.Add(InlineKeyboardButton.WithCallbackData("◀ Назад", $"/groupedposts:{page - 1}"));
+            navRow.Add(InlineKeyboardButton.WithCallbackData("◀", $"/groupedposts:{page - 1}"));
         if (page < grouped.Count - 1)
-            navButtons.Add(InlineKeyboardButton.WithCallbackData("▶ Далее", $"/groupedposts:{page + 1}"));
+            navRow.Add(InlineKeyboardButton.WithCallbackData("▶", $"/groupedposts:{page + 1}"));
 
-        var markup = navButtons.Any() ? new InlineKeyboardMarkup(navButtons) : null;
+        var markup = new InlineKeyboardMarkup(new[]
+        {
+            pageIndicatorRow,
+            navRow.ToArray()
+        });
 
-        await telegramBotClient.SendMessage(
+        await telegramBotClient.ReactivelySendAsync(
             chatId: userId,
             text: sb.ToString(),
-            parseMode: ParseMode.Html,
-            replyMarkup: markup,
-            linkPreviewOptions: true
+            replyMarkup: markup
         );
+
+        posts.ForEach(post => { post.IsSend = true; });
+
+        await delayedRepo.UpdateRangeAsync(posts);
+
+        await unitOfWork.CommitAsync();
     }
 
     private async Task SendSubscriptionOfferAsync(UserEn user)
@@ -261,54 +329,6 @@ public class TelegramSenderService(
             photo: stream,
             caption: text,
             replyMarkup: new InlineKeyboardMarkup(keyboardButtons)
-        );
-    }
-
-    private void ScheduleOneTimeJob(UserEn user)
-    {
-        if (user.ChannelUserSettings?.NotificationTime == null)
-            return;
-
-        var timeZoneId = user.ChannelUserSettings.TimeZoneId ?? "UTC";
-        TimeZoneInfo timeZone;
-
-        try
-        {
-            timeZone = TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
-        }
-        catch
-        {
-            timeZone = TimeZoneInfo.Utc;
-        }
-
-        var notificationTime = user.ChannelUserSettings.NotificationTime.Value;
-
-        // Создаем cron-выражение для времени из настроек пользователя (ежедневно)
-        var cronExpression = Cron.Daily(notificationTime.Hour, notificationTime.Minute);
-
-        var cronSchedule = CronExpression.Parse(cronExpression);
-
-        // Текущее время в UTC
-        var utcNow = DateTimeOffset.UtcNow;
-
-        // Получаем следующее время запуска в UTC с учётом cron и часового пояса
-        var nextUtc = cronSchedule.GetNextOccurrence(utcNow, TimeZoneInfo.Utc);
-
-        if (!nextUtc.HasValue)
-            return; // Нет следующего запуска — не ставим задачу
-
-        // Конвертируем следующий запуск в локальное время пользователя
-        var nextRunLocal = TimeZoneInfo.ConvertTime(nextUtc.Value, timeZone);
-
-        // Вычисляем задержку от текущего локального времени
-        var delay = nextRunLocal - DateTimeOffset.Now;
-
-        if (delay < TimeSpan.Zero)
-            delay = TimeSpan.Zero;
-
-        BackgroundJob.Schedule<TelegramSenderService>(
-            service => service.SendGroupedPostsAsync(user.Id, 0),
-            delay
         );
     }
 

@@ -1,6 +1,6 @@
 ﻿using MediatR;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Caching.Memory;
 using Serilog;
 using SummyAITelegramBot.Core.Abstractions;
 using SummyAITelegramBot.Core.Bot.Abstractions;
@@ -8,7 +8,6 @@ using SummyAITelegramBot.Core.Bot.Features.Channel.DTO;
 using SummyAITelegramBot.Core.Commands;
 using SummyAITelegramBot.Core.Domain.Enums;
 using SummyAITelegramBot.Infrastructure.Context;
-using System.IO;
 using TL;
 using WTelegram;
 
@@ -18,6 +17,7 @@ public class ChannelMonitoringWorker : BackgroundService
 {
     private readonly Client _client;
     private readonly IServiceProvider _serviceProvider;
+    private readonly IMemoryCache _cache;   
 
     private int _pts;
     private int _qts;
@@ -25,10 +25,12 @@ public class ChannelMonitoringWorker : BackgroundService
     private DateTime _startTimeUtc;
 
     public ChannelMonitoringWorker(
+        IMemoryCache cache,
         Client client, IServiceProvider serviceProvider)
     {
         _client = client;
         _serviceProvider = serviceProvider;
+        _cache = cache;
 
         // Подписка на входящие обновления
         _client.OnUpdates += OnUpdate;
@@ -89,30 +91,40 @@ public class ChannelMonitoringWorker : BackgroundService
     private async Task Process(Message message, int id, string text, long channelId, DateTime timeUtc, EntityAction action)
     {
         using var scope = _serviceProvider.CreateScope();
-        string path = "";
+
+        var handledPostCacheKey = $"ChannelPost_{channelId}_{id}";
+
+        // Пропускаем повторную обработку
+        if (_cache.TryGetValue(handledPostCacheKey, out _))
+            return;
+
+        _cache.Set(handledPostCacheKey, new object(), TimeSpan.FromSeconds(20));
 
         try
         {
+            // Пропускаем сообщения без текста
+            if (string.IsNullOrWhiteSpace(text))
+                return;
+
             var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
             var channel = await dbContext.Set<Core.Domain.Models.Channel>()
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(u => u.Id == channelId);
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Id == channelId);
 
             if (channel is null)
             {
-                Log.Warning($"В системе не зарегистриван канал с ID: {channelId}");
-
+                Log.Warning($"В системе не зарегистрирован канал с ID: {channelId}");
                 return;
             }
 
-            var mediaCacheService = scope.ServiceProvider.GetRequiredService<IMediaCacheService>();
-            var mediaPath = await mediaCacheService.SaveMediaAsync(message);
+            // Медиа не сохраняем
+            string? mediaPath = null;
 
             var dto = new ChannelPostDto
             {
                 Id = id,
-                Text = text,
+                Text = text.Trim(),
                 ChannelId = channelId,
                 CreatedAt = action == EntityAction.Create
                     ? DateTime.SpecifyKind(timeUtc, DateTimeKind.Utc)
@@ -120,21 +132,98 @@ public class ChannelMonitoringWorker : BackgroundService
                 UpdatedAt = action == EntityAction.Update
                     ? DateTime.SpecifyKind(timeUtc, DateTimeKind.Utc)
                     : null,
-                MediaPath = mediaPath
+                MediaPath = null // Указываем явно, что медиа нет
             };
-            path = mediaPath;
 
             var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
             await mediator.Send(new ProcessTelegramChannelPostCommand(dto, action));
-            DeleteImage(scope, path);
+
+            _cache.Set(handledPostCacheKey, dto, TimeSpan.FromSeconds(20));
         }
         catch (Exception ex)
         {
-            DeleteImage(scope, path);
-            scope.Dispose();
             Log.Error(ex, ex.Message);
         }
     }
+
+    //private async Task Process(Message message, int id, string text, long channelId, DateTime timeUtc, EntityAction action)
+    //{
+    //    using var scope = _serviceProvider.CreateScope();
+    //    string path = "";
+
+    //    var handledPostCacheKey = $"ChannelPost_{channelId}_{id}";
+
+    //    // 💡 Пропускаем повторную обработку
+    //    if (_cache.TryGetValue(handledPostCacheKey, out _))
+    //        return;
+
+    //    // 💡 Альбом: если уже обработан — пропустить
+    //    if (message.grouped_id is long groupId)
+    //    {
+    //        var albumHandledKey = $"AlbumHandled_{channelId}_{groupId}";
+
+    //        // Если уже есть — это второе+ медиа в альбоме → пропускаем
+    //        if (_cache.TryGetValue(albumHandledKey, out _))
+    //            return;
+
+    //        // Устанавливаем флаг, что альбом обработан
+    //        _cache.Set(albumHandledKey, true, TimeSpan.FromSeconds(30));
+    //    }
+
+    //    _cache.Set(handledPostCacheKey, new object(), TimeSpan.FromSeconds(20));
+
+    //    try
+    //    {
+    //        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+    //        var channel = await dbContext.Set<Core.Domain.Models.Channel>()
+    //                .AsNoTracking()
+    //                .FirstOrDefaultAsync(u => u.Id == channelId);
+
+    //        if (channel is null)
+    //        {
+    //            Log.Warning($"В системе не зарегистрирован канал с ID: {channelId}");
+    //            return;
+    //        }
+
+    //        var mediaCacheService = scope.ServiceProvider.GetRequiredService<IMediaCacheService>();
+    //        var mediaPath = await mediaCacheService.SaveMediaAsync(message);
+
+    //        var dto = new ChannelPostDto
+    //        {
+    //            Id = id,
+    //            Text = text,
+    //            ChannelId = channelId,
+    //            CreatedAt = action == EntityAction.Create
+    //                ? DateTime.SpecifyKind(timeUtc, DateTimeKind.Utc)
+    //                : default,
+    //            UpdatedAt = action == EntityAction.Update
+    //                ? DateTime.SpecifyKind(timeUtc, DateTimeKind.Utc)
+    //                : null,
+    //            MediaPath = mediaPath
+    //        };
+
+    //        var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
+    //        await mediator.Send(new ProcessTelegramChannelPostCommand(dto, action));
+
+    //        if (!string.IsNullOrWhiteSpace(mediaPath))
+    //        {
+    //            path = mediaPath;
+    //            DeleteImage(scope, path);
+    //        }
+
+    //        _cache.Set(handledPostCacheKey, dto, TimeSpan.FromSeconds(20));
+    //    }
+    //    catch (Exception ex)
+    //    {
+    //        if (!string.IsNullOrWhiteSpace(path))
+    //        {
+    //            DeleteImage(scope, path);
+    //        }
+
+    //        Log.Error(ex, ex.Message);
+    //    }
+    //}
 
     private void DeleteImage(IServiceScope scope, string path)
     {

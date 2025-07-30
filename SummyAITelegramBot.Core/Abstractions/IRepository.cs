@@ -34,6 +34,14 @@ public interface IRepository<TId, TEntity>
     Task<TEntity> UpdateAsync(TEntity entity, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Обновить сущности
+    /// </summary>
+    /// <param name="entities"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    Task<List<TEntity>> UpdateRangeAsync(IEnumerable<TEntity> entities, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Создать сущность
     /// </summary>
     /// <returns></returns>

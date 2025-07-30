@@ -19,7 +19,7 @@ public class HangfireSchedulerService
         var tz = TimeZoneInfo.FindSystemTimeZoneById("Russian Standard Time");
         var cron = CronExpression.Parse("0 2 * * *");
         var targetDate = DateTime.SpecifyKind(DateTime.Now, DateTimeKind.Unspecified);
-        var nextRun = cron.GetNextOccurrence(targetDate, tz); 
+        var nextRun = cron.GetNextOccurrence(targetDate, tz);
 
         if (nextRun.HasValue)
         {

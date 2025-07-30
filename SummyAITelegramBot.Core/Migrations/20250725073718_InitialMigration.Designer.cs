@@ -12,7 +12,7 @@ using SummyAITelegramBot.Infrastructure.Context;
 namespace SummyAITelegramBot.Core.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250716091535_InitialMigration")]
+    [Migration("20250725073718_InitialMigration")]
     partial class InitialMigration
     {
         /// <inheritdoc />
@@ -140,6 +140,9 @@ namespace SummyAITelegramBot.Core.Migrations
 
                     b.Property<DateTimeOffset?>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsSend")
+                        .HasColumnType("boolean");
 
                     b.Property<long>("UserId")
                         .HasColumnType("bigint");

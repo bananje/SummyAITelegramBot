@@ -88,6 +88,8 @@ StyleCopReport.xml
 *.tli
 *.tlh
 *.tmp
+*.env
+.env
 *.tmp_proj
 *_wpftmp.csproj
 *.log

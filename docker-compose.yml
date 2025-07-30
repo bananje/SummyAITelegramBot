@@ -1,0 +1,41 @@
+version: '3.9'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: summyai_app
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Production"
+      ConnectionStrings__DefaultConnection: "Host=db;Port=5432;Database=summydb;Username=postgres;Password=secret"
+      Telegram:BotToken: ${TELEGRAM_BOT_TOKEN}
+      OpenRouter:ApiToken: ${OPENROUTER_API_TOKEN}
+      Telegram:ApiHash: ${TELEGRAM_API_HASH}
+      Telegram:ApiId: ${TELEGRAM_API_ID}
+      Telegram:PhoneNumber: ${TELEGRAM_PHONE_NUMBER}
+    volumes:
+      - logs:/app/logs
+      - app_data:/app/data 
+    restart: unless-stopped
+
+  db:
+    image: postgres:15
+    container_name: summyai_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: summydb
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+    ports:
+      - "55432:5432"
+
+volumes:
+  dbdata:
+  logs:

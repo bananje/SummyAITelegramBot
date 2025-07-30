@@ -13,14 +13,23 @@ public class TextHeaderSummarizationStrategy : ISummarizationStrategy
         if (string.IsNullOrWhiteSpace(inputText))
             return Task.FromResult(string.Empty);
 
-        // Ищет первое предложение, заканчивающееся на . ! или ?
-        var match = Regex.Match(
-            inputText.Trim(), @"^.*?[\.!?](\s|$)", 
-            RegexOptions.Singleline);
-        
-        var result = match.Success ? match.Value.Trim() : inputText.Trim();
+        inputText = inputText.Trim();
 
-        return Task.FromResult(result);
+        // Пытаемся найти первое предложение, заканчивающееся на . ! или ?
+        var match = Regex.Match(inputText, @"^.*?[\.!?](\s|$)", RegexOptions.Singleline);
+
+        if (match.Success)
+        {
+            var words = match.Value.Split(new[] { ' ', '\t', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+            var summary = string.Join(" ", words.Take(15));
+            return Task.FromResult(summary);
+        }
+        else
+        {
+            var words = inputText.Split(new[] { ' ', '\t', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+            var summary = string.Join(" ", words.Take(15));
+            return Task.FromResult(summary);
+        }
     }
 
     public Task<bool> ValidateOfUniqueTextAsync(string allTexts, string currentText)

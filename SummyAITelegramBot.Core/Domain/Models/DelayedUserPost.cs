@@ -7,6 +7,8 @@ public class DelayedUserPost : Entity<long>
     public long UserId { get; set; }
     public User User { get; set; }
 
+    public bool IsSend { get; set; }
+
     public long ChannelId { get; set; }
 
     public DateTimeOffset? CreatedDate { get; set; }

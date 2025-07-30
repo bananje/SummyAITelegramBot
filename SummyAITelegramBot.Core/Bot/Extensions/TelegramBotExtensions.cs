@@ -43,6 +43,7 @@ public static class TelegramBotClientExtensions
                             previous.MessageId,
                             text,
                             replyMarkup: replyMarkup,
+                            linkPreviewOptions: true,
                             parseMode: ParseMode.Html,
                             cancellationToken: cancellationToken);
                         return;
@@ -72,11 +73,12 @@ public static class TelegramBotClientExtensions
         try
         {
             var sent = await bot.SendMessage(
-            chatId,
-            text,
-            replyMarkup: replyMarkup,
-            parseMode: ParseMode.Html,
-            cancellationToken: cancellationToken);
+                chatId,
+                text,
+                linkPreviewOptions: true,
+                replyMarkup: replyMarkup,
+                parseMode: ParseMode.Html,
+                cancellationToken: cancellationToken);
 
             _cache.Set(chatId, new CachedBotMessage
             {

@@ -29,6 +29,12 @@ public class GenericRepository<TId, TEntity> : IRepository<TId, TEntity> where T
         return entity;
     }
 
+    public virtual async Task<List<TEntity>> UpdateRangeAsync(IEnumerable<TEntity> entities, CancellationToken cancellationToken = default)
+    {
+        _context.Set<TEntity>().UpdateRange(entities); ;
+        return entities.ToList();
+    }
+
     public virtual Task<TEntity> GetOrCreateAsync(TEntity entity, CancellationToken cancellationToken = default)
     {
         throw new NotImplementedException();

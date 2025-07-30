@@ -152,6 +152,7 @@ namespace SummyAITelegramBot.Core.Migrations
                     Id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     UserId = table.Column<long>(type: "bigint", nullable: false),
+                    IsSend = table.Column<bool>(type: "boolean", nullable: false),
                     ChannelId = table.Column<long>(type: "bigint", nullable: false),
                     CreatedDate = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
                     ChannelPostId = table.Column<int>(type: "integer", nullable: false)

@@ -1,30 +1,30 @@
-using Microsoft.AspNetCore.HttpOverrides;
-using Serilog;
-using SummyAITelegramBot.Core.Bot.Abstractions;
-using SummyAITelegramBot.Core.Abstractions;
-using Telegram.Bot;
-using Microsoft.EntityFrameworkCore;
-using SummyAITelegramBot.Infrastructure.Context;
-using SummyAITelegramBot.Core.Utils;
-using SummyAITelegramBot.Core.Bot.Features.User.Abstractions;
-using SummyAITelegramBot.Core.Bot.Features.User.Services;
-using SummyAITelegramBot.API.ExceptionHandlers;
-using SummyAITelegramBot.Core.AI.AiStrategies;
-using SummyAITelegramBot.Core.AI.Factories;
-using SummyAITelegramBot.Core.AI.Abstractions;
-using SummyAITelegramBot.Core.Bot.Features.Channel.Abstractions;
-using SummyAITelegramBot.Core.Bot.Features.Channel.Services;
-using System.Net.Http.Headers;
-using SummyAITelegramBot.Infrastructure.Persistence;
 using Hangfire;
 using Hangfire.PostgreSql;
-using SummyAITelegramBot.Core.Commands;
-using SummyAITelegramBot.Core.Utils.Repository;
+using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.EntityFrameworkCore;
+using Serilog;
+using SummyAITelegramBot.API.ExceptionHandlers;
 using SummyAITelegramBot.API.Jobs;
-using SummyAITelegramBot.Core.Bot.Utils;
-using SummyAITelegramBot.Core.Extensions;
+using SummyAITelegramBot.Core.Abstractions;
+using SummyAITelegramBot.Core.AI.Abstractions;
+using SummyAITelegramBot.Core.AI.AiStrategies;
+using SummyAITelegramBot.Core.AI.Factories;
+using SummyAITelegramBot.Core.Bot.Abstractions;
+using SummyAITelegramBot.Core.Bot.Features.Channel.Abstractions;
+using SummyAITelegramBot.Core.Bot.Features.Channel.Services;
 using SummyAITelegramBot.Core.Bot.Features.Subsciption.Abstractions;
 using SummyAITelegramBot.Core.Bot.Features.Subsciption.Services;
+using SummyAITelegramBot.Core.Bot.Features.User.Abstractions;
+using SummyAITelegramBot.Core.Bot.Features.User.Services;
+using SummyAITelegramBot.Core.Bot.Utils;
+using SummyAITelegramBot.Core.Commands;
+using SummyAITelegramBot.Core.Extensions;
+using SummyAITelegramBot.Core.Utils;
+using SummyAITelegramBot.Core.Utils.Repository;
+using SummyAITelegramBot.Infrastructure.Context;
+using SummyAITelegramBot.Infrastructure.Persistence;
+using System.Net.Http.Headers;
+using Telegram.Bot;
 
 var builder = WebApplication.CreateBuilder(args);
 {
@@ -122,6 +122,7 @@ var builder = WebApplication.CreateBuilder(args);
             "api_id" => configuration["Telegram:ApiId"],
             "api_hash" => configuration["Telegram:ApiHash"],
             "phone_number" => configuration["Telegram:PhoneNumber"],
+            "session_pathname" => "/app/data/wt_session", // <-- вот это добавь
             _ => null
         };
 
