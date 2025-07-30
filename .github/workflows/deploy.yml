@@ -21,7 +21,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ secrets.CR_PAT }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
@@ -47,5 +47,5 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
             cd ${{ secrets.SERVER_PATH }}
-            docker-compose pull
-            docker-compose up -d
+            docker compose pull
+            docker compose up -d
